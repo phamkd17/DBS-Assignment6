@@ -1,0 +1,26 @@
+{
+  "todos": [
+    {
+      "id": "t20261107a",
+      "text": "Confirm your real class time",
+      "done": false,
+      "created": "2026-11-07T22:12:44-06:00",
+      "done_at": null,
+      "notes": [
+        {
+          "at": "2026-11-07T22:12:44-06:00",
+          "by": "Claude",
+          "text": "Tue 5:30–8:30 PM is a guess from the 5:30 PM deadline. Fix it in the LifeHarness calendar and context/weekly-rhythm.md."
+        }
+      ]
+    },
+    {
+      "id": "t20261109a",
+      "text": "Book flights",
+      "done": false,
+      "created": "2026-11-09T14:14:44-06:00",
+      "done_at": null,
+      "notes": []
+    }
+  ]
+}

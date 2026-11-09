@@ -74,8 +74,14 @@ Everything below is built. The only ⏳ left is the class-time confirmation.
 - **Commute card: River North → Elk Grove Village.** "Leave 7:20 AM · usually ~40 min", plus a **"Check live traffic ↗"** button that opens Google Maps with live traffic. On days off it fades and says "No work today."
   - Honest point: **Claude can't see live traffic.** The button is for *me*, and the context file tells Claude not to guess traffic. The page shows me more than Claude knows, and the harness knows the difference.
 - **Background: one Windows Spotlight photo per day.** It's the same photo-of-the-day feed Windows uses on its lock screen: muted so the plan stays readable, a new one each day, and it stays the same through reloads and server restarts.
+  - **Opening animation:** when the page opens, today's photo fills the window in full color for a quarter of a second with its place name, then fades into the muted background. Start the demo by opening the page so the audience sees it.
   - **A caption credits each photo** with the place and photographer, e.g. "Ice kayaker in Shiroka Polyana reservoir, Bulgaria · © …".
   - **Click the caption → the full photo** opens sharp and in full color. Click anywhere or press Esc to close.
+- **Calendar card:** "Open calendar ↗" jumps to that day in Google Calendar, and "+ Add event ↗" opens a new event. Point: Claude can't edit my calendar (the hook blocks it), so the page makes it one click for *me*. Then I say "replan" and Claude picks up the change.
+- **To-dos I can tick off, with progress notes.** Tick a box to mark it done (done items fold into "Done"). Click a to-do to see its progress notes and add one, e.g. "Confirm class time → emailed the TA, waiting to hear back." I can add new to-dos right on the page.
+  - **Shared memory:** the page and Claude use the same file, `notes/todos.json`. If I tick something off at night, the next morning Claude sees it's done. If I tell Claude "I made progress on X", it adds a note I can see on the page, marked "Claude".
+  - **Rules:** Claude never deletes a to-do or a note. And the page server only accepts changes from the page itself, so another website can't send requests to my `localhost` and edit my to-dos.
+  - Demo it: tick a to-do on the left, then say "good morning" on the right and show Claude doesn't bring it up.
 - **✈️ The vacation game (personal touch, a good closer for the tour):** "These photos are our vacation inspiration. My friend and I pick a random date in the future, and wherever the photo is on that day, that's where we go." Demo it: click the caption to show today's full photo and say, "If today were our date, we'd be going to Bulgaria."
 
 ## Changes I asked for (my design input; shows this wasn't a one-shot)
@@ -94,6 +100,9 @@ Everything below is built. The only ⏳ left is the class-time confirmation.
     - Then: **"They change too quickly"** → from every 15 seconds to **once a day**, cached so a restart doesn't change it.
 11. **"If I click the photo's caption, open the full photo"** → a full-screen viewer, unmuted.
 12. **The vacation game** gave the background a real purpose: a random future date picks our next trip.
+13. **"Make the carry-over clickable, and give me a way to add notes to track progress on longer items."** → To-dos moved out of each day's plan into one shared file (`notes/todos.json`). I tick them off and add progress notes on the page; Claude reads and updates the same file in check-ins. This changed the design: the page used to be read-only, and now it can edit exactly one thing, my to-dos, and nothing else.
+14. **"A small calendar card I can click to add or delete items."** → A Calendar card with "Open calendar" and "+ Add event". Same pattern as the suggestion links: Claude suggests, I make the change. (I tried a mini month view in the card, then removed it to keep the page simple; it also needed Claude to save a calendar snapshot at every check-in.)
+15. **"Flash the photo full-screen when the page opens, then fade it to the background."** → A quarter-second intro of today's photo (click to skip; skipped if the system asks for reduced motion).
 
 ## The background, behind the scenes (if asked)
 - Windows Spotlight has **no official API.** It uses the unofficial endpoint Windows itself calls, so it could change. If it fails, the page keeps yesterday's photo or shows a plain background, and never breaks.

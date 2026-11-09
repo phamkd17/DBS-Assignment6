@@ -21,11 +21,15 @@ Add anything here. Move items to "Done" when they're built.
 -
 
 ## Decided against
+- Mini month calendar in the Calendar card. Tried it, then removed it to keep the page simple (it also needed a calendar snapshot saved at every check-in).
 - Photo history for the vacation game (saving each day's photo to look up past dates). Not needed.
 - A shared photo with a friend via Bing's Image of the Day (Spotlight shows each computer a different photo). Not needed.
 - Live drive time on "good morning" (TomTom key or scraping Google Maps). Kept the "Check live traffic" button.
 
 ## Done
+- [x] Opening animation: today's photo full-screen for 0.25 s, then fades into the muted background (click to skip).
+- [x] Calendar card: "Open calendar ↗" (the plan's day) and "+ Add event ↗". Khang edits in Google Calendar, then says "replan".
+- [x] Clickable to-dos with progress notes: `notes/todos.json`, shared by the page and Claude. Tick to finish, click to open notes, add to-dos and notes on the page.
 - [x] Google Calendar connected (LifeHarness calendar, made-up events)
 - [x] Live weather (Open-Meteo) → `data/weather.json`
 - [x] AGENTS.md + context files

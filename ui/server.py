@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
-"""LifeHarness UI server. Read-only: serves the page and the current plan.
+"""LifeHarness UI server: serves the page and the current plan, and lets the page
+update to-dos (notes/todos.json). It never touches plans/ or data/.
 
 Run:  python3 ui/server.py      then open http://localhost:4321
 """
 import json
+import os
 import re
+import secrets
+from datetime import datetime
 import threading
 import time
 import urllib.request
@@ -85,11 +89,52 @@ def load(path):
         return None
 
 
+# To-dos: shared between the page (via the endpoints below) and Claude (check-ins).
+TODOS = ROOT / "notes" / "todos.json"
+_todo_lock = threading.Lock()
+ALLOWED_ORIGINS = {f"http://localhost:{PORT}", f"http://127.0.0.1:{PORT}"}
+MAX_TODO, MAX_NOTE = 300, 1000
+
+
+class TodoFileError(Exception):
+    pass
+
+
+def load_todos():
+    if not TODOS.exists():
+        return {"todos": []}
+    try:
+        data = json.loads(TODOS.read_text())
+        assert isinstance(data.get("todos"), list)
+        return data
+    except (OSError, json.JSONDecodeError, AssertionError, AttributeError):
+        raise TodoFileError("notes/todos.json is unreadable; not overwriting it")
+
+
+def save_todos(data):
+    tmp = TODOS.with_suffix(".json.tmp")
+    tmp.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n")
+    os.replace(tmp, TODOS)   # atomic: never leaves a half-written file
+
+
+def now():
+    return datetime.now().astimezone().isoformat(timespec="seconds")
+
+
+def clean(text, limit):
+    text = " ".join(str(text or "").split())
+    return text[:limit] if text else None
+
+
 def state():
     saved_files = sorted(p for p in PLANS.glob("*.json") if DATED.match(p.name))
     saved = load(saved_files[-1]) if saved_files else None
     proposed = load(PLANS / "proposed.json") if (PLANS / "proposed.json").exists() else None
-    return {"proposed": proposed, "saved": saved}
+    try:
+        todos = load_todos()["todos"]
+    except TodoFileError:
+        todos = None   # the page shows a warning instead of the list
+    return {"proposed": proposed, "saved": saved, "todos": todos}
 
 
 class Handler(SimpleHTTPRequestHandler):
@@ -110,6 +155,54 @@ class Handler(SimpleHTTPRequestHandler):
         if self.path.startswith("/api/photos"):
             return self.send_json(spotlight_photos())
         super().do_GET()
+
+    def do_POST(self):
+        if not self.path.startswith("/api/todos/"):
+            return self.send_error(404)
+        # Only the page itself may make changes: other websites can also send requests to
+        # localhost, but they can't fake the Origin header or send JSON without a preflight.
+        if self.headers.get("Origin") not in ALLOWED_ORIGINS:
+            return self.send_error(403)
+        if self.headers.get("Content-Type", "").split(";")[0].strip() != "application/json":
+            return self.send_error(415)
+        length = int(self.headers.get("Content-Length") or 0)
+        if length > 4096:
+            return self.send_error(413)
+        try:
+            body = json.loads(self.rfile.read(length) or b"{}")
+        except json.JSONDecodeError:
+            return self.send_error(400)
+        action = self.path[len("/api/todos/"):]
+
+        with _todo_lock:
+            try:
+                data = load_todos()
+            except TodoFileError as e:
+                return self.send_error(409, str(e))
+            todos = data["todos"]
+            find = lambda: next((t for t in todos if t.get("id") == body.get("id")), None)
+
+            if action == "add":
+                text = clean(body.get("text"), MAX_TODO)
+                if not text:
+                    return self.send_error(400)
+                todos.append({"id": "t" + secrets.token_hex(4), "text": text, "done": False,
+                              "created": now(), "done_at": None, "notes": []})
+            elif action == "toggle":
+                t = find()
+                if not t:
+                    return self.send_error(404)
+                t["done"] = not t.get("done")
+                t["done_at"] = now() if t["done"] else None
+            elif action == "note":
+                t, text = find(), clean(body.get("text"), MAX_NOTE)
+                if not t or not text:
+                    return self.send_error(400)
+                t.setdefault("notes", []).append({"at": now(), "by": "Khang", "text": text})
+            else:
+                return self.send_error(404)
+            save_todos(data)
+        return self.send_json(todos)
 
     def log_message(self, *args):  # keep the terminal quiet
         pass

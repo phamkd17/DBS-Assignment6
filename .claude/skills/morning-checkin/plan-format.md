@@ -35,7 +35,6 @@ The UI shows `proposed.json` if it exists, otherwise the newest dated plan. The 
       "event_link": "https://www.google.com/calendar/event?eid=..."
     }
   ],
-  "carried_over": ["Email the TA about step 5"],
   "look_ahead": [
     { "day": "Sun", "plan": "Step 4" },
     { "day": "Mon", "plan": "Step 5 + submit" }
@@ -52,4 +51,28 @@ The UI shows `proposed.json` if it exists, otherwise the newest dated plan. The 
   - `text`: what to change and why, one sentence.
   - `event_title`: the event's name and current time, e.g. "Laundry · Mon 7:30 PM".
   - `event_link`: the event's `htmlLink`, copied exactly from the calendar results. Never build or guess a link. If the suggestion isn't about an existing event, leave it out.
-- `carried_over`, `look_ahead`: empty arrays if none.
+- `look_ahead`: empty array if none.
+- No to-dos in the plan: they live in `notes/todos.json`, and the page reads them from there.
+
+# To-do file format (`notes/todos.json`)
+
+Shared with the page: Khang ticks items off and adds notes there. Keep this exact shape.
+
+```json
+{
+  "todos": [
+    {
+      "id": "t20261109b",
+      "text": "Email the TA about step 5",
+      "done": false,
+      "created": "2026-11-09T07:05:00-06:00",
+      "done_at": null,
+      "notes": [
+        { "at": "2026-11-09T07:05:00-06:00", "by": "Claude", "text": "Drafted, not sent yet." }
+      ]
+    }
+  ]
+}
+```
+- `id`: unique. For new ones use `"t" + YYYYMMDD + a letter` (e.g. `t20261109b`), checking it isn't taken.
+- `by`: `"Khang"` (added on the page) or `"Claude"` (added in a check-in).

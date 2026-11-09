@@ -25,6 +25,13 @@
                 border-radius: 6px; cursor: zoom-in; text-align: right; }
   #bg-caption:hover { color: var(--ink); background: rgba(255, 255, 255, .92); }
   #bg-caption:empty { display: none; }
+  /* Intro: today's photo full-screen on page open, then it fades into the background */
+  #intro { position: fixed; inset: 0; z-index: 20; background: #000 center / cover no-repeat; cursor: pointer;
+           opacity: 1; transition: opacity 1s ease, filter 1s ease, transform 1s ease; }
+  #intro.fade { opacity: 0; filter: saturate(.5) blur(2px); transform: scale(1.03); pointer-events: none; }
+  #intro .intro-cap { position: absolute; left: 28px; bottom: 26px; color: #fff; text-shadow: 0 2px 12px rgba(0,0,0,.7); }
+  #intro .intro-cap b { display: block; font-size: 22px; letter-spacing: -.01em; }
+  #intro .intro-cap span { font-size: 12px; opacity: .85; }
   /* Full-photo viewer */
   #viewer { position: fixed; inset: 0; z-index: 10; background: rgba(0, 0, 0, .92); display: none;
             flex-direction: column; align-items: center; justify-content: center; gap: 12px; cursor: zoom-out; }
@@ -75,9 +82,32 @@
   .commute .sub { font-size: 13px; color: var(--muted); }
   .commute .cal-link { margin-top: 0; white-space: nowrap; }
   .commute.off { opacity: .6; }
+  .commute + .commute { margin-top: 8px; }
+  .card-links { display: flex; flex-direction: column; gap: 6px; align-items: stretch; }
+  .card-links .cal-link { text-align: center; }
   .suggest li { display: flex; flex-direction: column; align-items: flex-start; }
   .suggest li::before { display: none; }
-  .carry li::before { content: "☐ "; color: var(--muted); }
+  /* To-dos */
+  .todos .todo-row { display: flex; align-items: center; gap: 10px; }
+  .todos input[type=checkbox] { width: 17px; height: 17px; accent-color: var(--saved); cursor: pointer; flex-shrink: 0; }
+  .todo-text { flex: 1; text-align: left; background: none; border: 0; padding: 0; font: inherit; color: inherit; cursor: pointer; }
+  .todo-text:hover { color: var(--school); }
+  .todo.done .todo-text { text-decoration: line-through; color: var(--muted); }
+  .todo-count { font-size: 12px; color: var(--muted); }
+  .todo-latest { font-size: 13px; color: var(--muted); margin: 2px 0 0 27px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .todo-notes { margin: 8px 0 2px 27px; padding-left: 10px; border-left: 2px solid var(--line); }
+  .todo-note { font-size: 13px; margin-bottom: 6px; }
+  .todo-when { display: block; font-size: 11px; color: var(--muted); }
+  .todo-empty { color: var(--muted); }
+  .todo-warn { padding: 10px 12px; color: #c62828; }
+  .todo-form { display: flex; gap: 6px; margin-top: 8px; }
+  .todo-form input { flex: 1; font: inherit; font-size: 14px; padding: 6px 10px; border: 1px solid var(--line);
+                     border-radius: 8px; background: rgba(255,255,255,.9); }
+  .todo-form button { font: inherit; font-size: 13px; font-weight: 600; padding: 6px 12px; border: 0; border-radius: 8px;
+                      background: #eaf1ff; color: #1a56db; cursor: pointer; }
+  .todo-done { margin-top: 10px; }
+  .todo-done summary { cursor: pointer; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+  .todo-done .box { margin-top: 6px; }
   .ahead li b { display: inline-block; width: 44px; }
   .empty { color: var(--muted); text-align: center; margin-top: 80px; }
   footer { color: var(--muted); font-size: 12px; margin-top: 26px; text-align: center; }
@@ -170,12 +200,121 @@ function renderCommute(plan) {
   return card;
 }
 
-function render({ proposed, saved }) {
+// ---- To-dos (notes/todos.json): tick to finish, click to open progress notes ----
+const expanded = new Set();   // which to-dos have their notes open (kept across re-renders)
+
+function when(iso) {
+  return iso ? new Date(iso).toLocaleString("en-US", { month: "short", day: "numeric",
+    hour: "numeric", minute: "2-digit" }) : "";
+}
+
+async function todoAction(action, body) {
+  try {
+    const r = await fetch("/api/todos/" + action, { method: "POST",
+      headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    if (!r.ok) alert("Couldn't save that change (" + r.status + "). Is the server running?");
+  } catch { alert("Couldn't reach the server. Is it running?"); }
+  last = ""; poll();   // re-render with the saved state
+}
+
+function inputForm(placeholder, button, onSubmit) {
+  const f = el("form", "todo-form");
+  const input = el("input"); input.placeholder = placeholder; input.maxLength = 1000;
+  f.append(input, el("button", null, button));
+  f.addEventListener("submit", e => {
+    e.preventDefault();
+    const v = input.value.trim();
+    if (v) { input.value = ""; onSubmit(v); }
+  });
+  return f;
+}
+
+function renderTodo(t) {
+  const li = el("li", `todo ${t.done ? "done" : ""}`);
+  const row = el("div", "todo-row");
+  const box = el("input"); box.type = "checkbox"; box.checked = !!t.done;
+  box.title = t.done ? "Reopen" : "Mark done";
+  box.addEventListener("change", () => todoAction("toggle", { id: t.id }));
+  const text = el("button", "todo-text", t.text); text.type = "button";
+  text.title = "Show progress notes";
+  text.addEventListener("click", () => {
+    expanded.has(t.id) ? expanded.delete(t.id) : expanded.add(t.id);
+    last = ""; poll();
+  });
+  const notes = t.notes || [];
+  row.append(box, text);
+  if (notes.length) row.append(el("span", "todo-count", `📝 ${notes.length}`));
+  li.append(row);
+
+  if (expanded.has(t.id)) {
+    const box2 = el("div", "todo-notes");
+    notes.forEach(n => {
+      const p = el("div", "todo-note");
+      p.append(el("span", "todo-when", `${when(n.at)}${n.by ? " · " + n.by : ""}`), el("span", null, n.text));
+      box2.append(p);
+    });
+    if (!t.done) box2.append(inputForm("Add a progress note…", "Add note", v => todoAction("note", { id: t.id, text: v })));
+    li.append(box2);
+  } else if (notes.length && !t.done) {
+    li.append(el("div", "todo-latest", notes[notes.length - 1].text));
+  }
+  return li;
+}
+
+function renderTodos(todos) {
+  const frag = document.createDocumentFragment();
+  frag.append(el("h2", null, "To-dos"));
+  if (todos === null) {
+    frag.append(el("div", "box todo-warn", "notes/todos.json couldn't be read. Ask Claude to fix it."));
+    return frag;
+  }
+  const open = todos.filter(t => !t.done);
+  const done = todos.filter(t => t.done).sort((a, b) => (b.done_at || "").localeCompare(a.done_at || ""));
+  const ul = el("ul", "box todos");
+  open.forEach(t => ul.append(renderTodo(t)));
+  if (!open.length) ul.append(el("li", "todo-empty", "Nothing open. 🎉"));
+  frag.append(ul, inputForm("Add a to-do…", "Add", v => todoAction("add", { text: v })));
+  if (done.length) {
+    const d = el("details", "todo-done");
+    d.open = expanded.has("__done__");
+    d.addEventListener("toggle", () => d.open ? expanded.add("__done__") : expanded.delete("__done__"));
+    d.append(el("summary", null, `Done (${done.length})`));
+    const dl = el("ul", "box todos");
+    done.forEach(t => dl.append(renderTodo(t)));
+    d.append(dl);
+    frag.append(d);
+  }
+  return frag;
+}
+
+// Calendar card: quick links so Khang can add/move/delete events in Google Calendar
+// (Claude never edits the calendar; Khang does, then says "replan").
+function renderCalendar(plan) {
+  const [y, m, d] = (plan.date || "").split("-").map(Number);
+  const dayUrl = y ? `https://calendar.google.com/calendar/r/day/${y}/${m}/${d}` : "https://calendar.google.com/calendar/r";
+  const card = el("div", "commute calendar");
+  const text = el("div");
+  text.append(el("div", "label", "Calendar"),
+              el("div", "value", "LifeHarness"),
+              el("div", "sub", "Changed something? Say “replan” to Claude."));
+  const links = el("div", "card-links");
+  [["Open calendar ↗", dayUrl], ["+ Add event ↗", "https://calendar.google.com/calendar/r/eventedit"]]
+    .forEach(([label, href]) => {
+      const a = el("a", "cal-link", label);
+      a.href = href; a.target = "_blank"; a.rel = "noopener noreferrer";
+      links.append(a);
+    });
+  card.append(text, links);
+  return card;
+}
+
+function render({ proposed, saved, todos }) {
   const app = document.getElementById("app");
   const plan = proposed || saved;
   app.replaceChildren();
   if (!plan) {
     app.append(el("p", "empty", "Waiting for your first check-in… Say “good morning” to Claude."));
+    if (todos !== undefined) app.append(renderTodos(todos));
     return;
   }
   const isProposed = !!proposed;
@@ -209,6 +348,7 @@ function render({ proposed, saved }) {
   }
   app.append(row);
   app.append(renderCommute(plan));
+  app.append(renderCalendar(plan));
 
   app.append(el("h2", null, "Timeline"));
   const now = chicagoNow();
@@ -226,22 +366,35 @@ function render({ proposed, saved }) {
     app.append(item);
   });
 
-  [list("Suggestions: you make these changes", plan.suggestions, "suggest", renderSuggestion),
-   list("Carried over", plan.carried_over, "carry", s => el("li", null, s)),
-   list("Look ahead", plan.look_ahead, "ahead", s => { const li = el("li"); li.append(el("b", null, s.day), s.plan); return li; })]
-    .forEach(n => n && app.append(n));
+  const sugg = list("Suggestions: you make these changes", plan.suggestions, "suggest", renderSuggestion);
+  if (sugg) app.append(sugg);
+  if (todos !== undefined) app.append(renderTodos(todos));
+  const ahead = list("Look ahead", plan.look_ahead, "ahead", s => { const li = el("li"); li.append(el("b", null, s.day), s.plan); return li; });
+  if (ahead) app.append(ahead);
 
-  const when = plan.saved_at ? new Date(plan.saved_at).toLocaleString("en-US",
+  const savedWhen = plan.saved_at ? new Date(plan.saved_at).toLocaleString("en-US",
     { weekday: "short", hour: "numeric", minute: "2-digit", timeZone: "America/Chicago" }) : "";
-  app.append(el("footer", null, `${isProposed ? "Proposed" : "Saved"} ${when} · updates automatically`));
+  app.append(el("footer", null, `${isProposed ? "Proposed" : "Saved"} ${savedWhen} · updates automatically`));
 }
 
-let last = "";
+// Don't redraw while you're typing (it would wipe the text box); catch up when you're done.
+let last = "", pending = null;
+function typing() {
+  const a = document.activeElement;
+  return a && a.tagName === "INPUT" && a.type !== "checkbox" && a.value.trim() !== "";
+}
+document.addEventListener("focusout", () => setTimeout(() => {
+  if (pending && !typing()) { const s = pending; pending = null; render(s); }
+}, 0));
 async function poll() {
   try {
     const r = await fetch("/api/state", { cache: "no-store" });
     const text = await r.text();
-    if (text !== last) { last = text; render(JSON.parse(text)); }
+    if (text !== last) {
+      last = text;
+      const s = JSON.parse(text);
+      if (typing()) pending = s; else render(s);
+    }
   } catch (e) { /* server restarting; try again */ }
 }
 poll();
@@ -254,6 +407,28 @@ function isMicrosoftImage(url) {
   try { const u = new URL(url); return u.protocol === "https:" && u.hostname.endsWith(".microsoft"); }
   catch { return false; }
 }
+// On page open: show today's photo full-screen and in full color, then fade it into the
+// muted background. Click to skip. Skipped entirely if the system asks for reduced motion.
+const INTRO_HOLD_MS = 250, INTRO_FADE_MS = 1000;
+function playIntro(p) {
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const intro = el("div"); intro.id = "intro";
+  intro.style.backgroundImage = `url("${p.url}")`;
+  const cap = el("div", "intro-cap");
+  if (p.place) cap.append(el("b", null, p.place));
+  if (p.credit) cap.append(el("span", null, p.credit));
+  intro.append(cap);
+  document.body.append(intro);
+  let gone = false;
+  const fade = () => {
+    if (gone) return; gone = true;
+    intro.classList.add("fade");
+    setTimeout(() => intro.remove(), INTRO_FADE_MS + 100);
+  };
+  const timer = setTimeout(fade, INTRO_HOLD_MS);
+  intro.addEventListener("click", () => { clearTimeout(timer); fade(); });
+}
+
 async function startBackground() {
   const layers = [document.getElementById("bg0"), document.getElementById("bg1")];
   const caption = document.getElementById("bg-caption");
@@ -282,6 +457,7 @@ async function startBackground() {
       next.classList.add("show");
       layers[front].classList.remove("show");
       front = 1 - front;
+      if (!current) playIntro(p);   // first photo since the page opened
       current = p.url;
       currentPhoto = p;
       caption.textContent = [p.place, p.credit].filter(Boolean).join(" · ");

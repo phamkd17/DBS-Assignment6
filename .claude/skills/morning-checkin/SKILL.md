@@ -11,7 +11,7 @@ Khang has ~2–3 minutes (coffee, shower, then driving at 7:20). Be brief. No lo
 ## 1. Gather (do this silently, in parallel where possible)
 - Open the page: run `curl -s -o /dev/null -w '%{http_code}' http://localhost:4321/`. If it isn't `200`, start `python3 ui/server.py` in the background. Then run `open http://localhost:4321`.
 - Run `date` to get today's date and weekday. Don't trust your own sense of the date.
-- Read `notes/log.md` (the latest 3 entries are enough).
+- Read `notes/log.md` (the latest 3 entries are enough) and `notes/todos.json` (open to-dos and their progress notes; Khang may have ticked some off or added notes on the page).
 - Read `context/weekly-rhythm.md` and `context/assignment-cycle.md`.
 - Read the current assignment file in `context/assignments/` (the one due next Tuesday).
 - Weather: read `data/weather.json`. If `current.time` is more than ~3 hours old, run `./scripts/fetch-weather.sh` first. Read `context/weather-rules.md`.
@@ -22,7 +22,7 @@ Khang has ~2–3 minutes (coffee, shower, then driving at 7:20). Be brief. No lo
 - Today's events in time order, one line.
 - Weather: one line **only** if `weather-rules.md` says it matters (bad drive, outdoor plan at risk). Otherwise skip it.
 - Assignment: "A6 due Tue 5:30 PM, N school blocks left". Say "behind" if the cycle rules say so.
-- Carried-over to-dos from the last log entry, if any.
+- Open to-dos from `notes/todos.json`, if any. For longer ones, mention the latest progress note in a few words.
 
 ## 3. Ask (at most two questions, one at a time)
 - **Always (unless no school block since the last check-in):** "Which step of A6 are you on?"
@@ -40,7 +40,12 @@ Khang has ~2–3 minutes (coffee, shower, then driving at 7:20). Be brief. No lo
 ## 5. Save (only after Khang agrees)
 - If Khang asks for changes, update `plans/proposed.json` and confirm again.
 - On yes: write the same plan to `plans/<YYYY-MM-DD>.json` (the date the plan is *for*; when planning tomorrow at night, use tomorrow's date), with a fresh `saved_at`. Then delete `plans/proposed.json`.
-- Add a new entry at the **top** of `notes/log.md` (below the header): date, one-line plan, assignment step, carried-over to-dos (keep unfinished ones, drop ones Khang says are done).
+- Add a new entry at the **top** of `notes/log.md` (below the header): date, one-line plan, assignment step, open to-dos.
+- Update `notes/todos.json` (format in `plan-format.md`). Re-read it right before writing, since Khang may have changed it on the page:
+  - New to-do Khang mentions → add it.
+  - Khang says one is done → set `done: true` and `done_at`.
+  - Khang reports progress on one → append a note with `"by": "Claude"`.
+  - Never delete a to-do or any note, and never edit Khang's notes.
 - Reply in one line: "Plan saved. Your page is updated."
 
 ## Never
