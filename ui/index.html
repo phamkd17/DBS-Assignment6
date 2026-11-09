@@ -49,6 +49,13 @@
   .cal-link { display: inline-block; margin-top: 6px; padding: 5px 10px; border-radius: 8px; font-size: 13px;
               font-weight: 600; color: #1a56db; background: #eaf1ff; text-decoration: none; }
   .cal-link:hover { background: #dbe7ff; }
+  .commute { display: flex; align-items: center; justify-content: space-between; gap: 12px;
+             background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; margin-bottom: 4px; }
+  .commute .label { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+  .commute .value { font-weight: 600; margin-top: 2px; }
+  .commute .sub { font-size: 13px; color: var(--muted); }
+  .commute .cal-link { margin-top: 0; white-space: nowrap; }
+  .commute.off { opacity: .6; }
   .suggest li { display: flex; flex-direction: column; align-items: flex-start; }
   .suggest li::before { display: none; }
   .carry li::before { content: "☐ "; color: var(--muted); }
@@ -116,6 +123,27 @@ function renderSuggestion(s) {
   return li;
 }
 
+// Morning drive. Neighborhood-level, not exact addresses.
+const COMMUTE = {
+  from: "River North", to: "Elk Grove Village", leave: "7:20 AM", usual: "~40 min",
+  url: "https://www.google.com/maps/dir/?api=1&origin=River+North,+Chicago,+IL" +
+       "&destination=Elk+Grove+Village,+IL&travelmode=driving",
+};
+
+function renderCommute(plan) {
+  const workday = (plan.timeline || []).some(t => t.kind === "work");
+  const card = el("div", `commute ${workday ? "" : "off"}`);
+  const text = el("div");
+  text.append(el("div", "label", "Commute"),
+              el("div", "value", `${COMMUTE.from} → ${COMMUTE.to}`),
+              el("div", "sub", workday ? `Leave ${COMMUTE.leave} · usually ${COMMUTE.usual}`
+                                       : "No work today"));
+  const a = el("a", "cal-link", "Check live traffic ↗");
+  a.href = COMMUTE.url; a.target = "_blank"; a.rel = "noopener noreferrer";
+  card.append(text, a);
+  return card;
+}
+
 function render({ proposed, saved }) {
   const app = document.getElementById("app");
   const plan = proposed || saved;
@@ -154,6 +182,7 @@ function render({ proposed, saved }) {
     bar.append(fill); c.append(bar); row.append(c);
   }
   app.append(row);
+  app.append(renderCommute(plan));
 
   app.append(el("h2", null, "Timeline"));
   const now = chicagoNow();

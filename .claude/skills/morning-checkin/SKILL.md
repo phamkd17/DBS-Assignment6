@@ -1,7 +1,7 @@
 ---
 name: morning-checkin
 description: Khang's daily check-in and day planner. Use whenever Khang greets you in the morning ("good morning", "morning", "gm"), asks to plan or replan the day ("plan my day", "what should I do today", "replan", "I added an event"), or asks what's on today or how much time is left for the assignment. Reads the LifeHarness calendar, weather, and notes; asks at most two questions; proposes a plan; saves it only after Khang agrees.
-allowed-tools: Read, Bash(date *), Bash(./scripts/fetch-weather.sh), mcp__claude_ai_Google_Calendar__list_events
+allowed-tools: Read, Bash(date *), Bash(./scripts/fetch-weather.sh), Bash(curl -s -o /dev/null -w * http://localhost:4321/), Bash(python3 ui/server.py), Bash(open http://localhost:4321), mcp__claude_ai_Google_Calendar__list_events
 ---
 
 # Morning check-in
@@ -9,6 +9,7 @@ allowed-tools: Read, Bash(date *), Bash(./scripts/fetch-weather.sh), mcp__claude
 Khang has ~2–3 minutes (coffee, shower, then driving at 7:20). Be brief. No long reports, no headers in your replies, no tables unless asked.
 
 ## 1. Gather (do this silently, in parallel where possible)
+- Open the page: run `curl -s -o /dev/null -w '%{http_code}' http://localhost:4321/`. If it isn't `200`, start `python3 ui/server.py` in the background. Then run `open http://localhost:4321`.
 - Run `date` to get today's date and weekday. Don't trust your own sense of the date.
 - Read `notes/log.md` (the latest 3 entries are enough).
 - Read `context/weekly-rhythm.md` and `context/assignment-cycle.md`.

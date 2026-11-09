@@ -2,7 +2,8 @@
 
 ## Mornings (every weekday)
 - 6:50 wake up → coffee + shower → check in with the harness
-- 7:20 leave, driving to work (~40 min)
+- 7:20 leave, driving to work (~40 min), River North → Elk Grove Village
+  - You can't see live traffic. The page has a "Check live traffic" button (Google Maps) for Khang. Don't guess traffic conditions.
 - 8:00–5:00 work. No school work fits in the morning or during the workday.
 
 ## School blocks

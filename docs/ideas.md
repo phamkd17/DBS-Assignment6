@@ -12,7 +12,9 @@ Add anything here. Move items to "Done" when they're built.
 - [ ] **Fetch weather overnight on a schedule** (macOS launchd, ~6:30 AM) so it's already fresh at check-in. The brief mentions "waiting when you wake up."
 - [ ] **Live replan demo moment:** add an event on your phone mid-demo, say "I just added something, replan," and show the UI update.
 - [ ] **Chicago events (Ticketmaster Discovery API, free key)** as a bonus third source, e.g. suggest something fun for Friday nights.
-- [ ] **Drive time with traffic (TomTom, free tier)**, e.g. "leave by 7:10, the Kennedy is slow." Chicago's own traffic feed was stale, so this would need TomTom.
+- [ ] **Live drive time in the Commute card on "good morning"** (requested). Needs a live source:
+  - **TomTom free tier (recommended):** `scripts/fetch-traffic.sh` → `data/traffic.json` (hook-protected) → `commute` field in the plan → the card shows "47 min (usually 40) · leave by 7:10".
+  - **Browser automation:** Claude opens Google Maps in Chrome and reads the ETA. No key, but slow (eats the 2–3 min check-in), fragile, and scraping Google Maps is against its terms.
 - [ ] **First git commit** as a checkpoint before building the skill.
 
 ## Your ideas
@@ -26,4 +28,6 @@ Add anything here. Move items to "Done" when they're built.
 - [x] UI: local page at http://localhost:4321 (`python3 ui/server.py`), shows proposed vs. saved plans
 - [x] Suggestions link to the event in Google Calendar ("Edit … in Google Calendar ↗")
 - [x] Hook: `.claude/hooks/protect-data.py`, on in `.claude/settings.json`; test with `./scripts/test-hook.sh`
+- [x] Commute card: River North → Elk Grove Village, "Check live traffic ↗" opens Google Maps (no key)
+- [x] "Good morning" opens the page (starts the server if it's not running)
 - [x] Demo talking points (`docs/demo-talking-points.md`)
