@@ -88,13 +88,26 @@
   .suggest li { display: flex; flex-direction: column; align-items: flex-start; }
   .suggest li::before { display: none; }
   /* Weather chip (clickable) + hourly forecast */
-  .chip-btn { font: inherit; color: inherit; text-align: left; cursor: pointer; }
-  .chip-btn:hover { border-color: var(--school); }
+  .wx-alert { margin: 0 0 6px; }
   .hourly { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 7px 10px 6px;
-            margin: -8px 0 10px; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+            margin: 0 0 10px; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
   .hourly-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 13px; margin-bottom: 1px; }
   .hourly-head span { font-size: 12px; color: var(--muted); }
-  .hourly-scroll { overflow-x: auto; padding-bottom: 2px; }
+  .hourly-scroll { overflow-x: auto; padding-bottom: 4px;
+                   scrollbar-width: thin; scrollbar-color: rgba(42, 120, 214, .45) transparent; }
+  .hourly-scroll::-webkit-scrollbar { height: 6px; }
+  .hourly-scroll::-webkit-scrollbar-track { background: rgba(42, 120, 214, .07); border-radius: 3px; }
+  .hourly-scroll::-webkit-scrollbar-thumb { background: rgba(42, 120, 214, .40); border-radius: 3px; }
+  .hourly-scroll::-webkit-scrollbar-thumb:hover { background: rgba(42, 120, 214, .65); }
+  .day-sum { display: flex; align-items: center; gap: 10px; padding: 2px 0 6px; margin-bottom: 4px;
+             border-bottom: 1px solid var(--line); }
+  .day-sum:empty { display: none; }
+  .day-sum-icon { font-size: 30px; line-height: 1; }
+  .day-sum-text { flex: 1; min-width: 0; }
+  .day-sum-hl b { font-size: 20px; letter-spacing: -.01em; }
+  .day-sum-hl span { font-size: 15px; color: var(--muted); font-weight: 600; }
+  .day-sum-words { font-size: 12px; color: var(--muted); }
+  .day-sum-sun { font-size: 11px; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
   .hourly-inner { position: relative; }
   .hourly-strip { display: flex; gap: 4px; }
   .colbg { position: absolute; top: 0; bottom: 0; width: 40px; border-radius: 8px; pointer-events: none; }
@@ -334,7 +347,7 @@ function renderTodos(todos) {
 
 // ---- Hourly weather (click the Weather chip) ----
 // Reads the same weather file Claude plans from, via /api/weather (read-only).
-let weatherOpen = false, weatherData = null;
+let weatherData = null;
 const WX_ICON = (c, night) => c <= 1 ? (night ? "🌙" : c === 0 ? "☀️" : "🌤️") : c === 2 ? (night ? "☁️" : "⛅")
   : c === 3 ? "☁️" : c <= 48 ? "🌫️" : c <= 57 ? "🌦️" : c <= 67 ? "🌧️" : c <= 77 ? "🌨️" : c <= 82 ? "🌧️" : c <= 86 ? "🌨️" : "⛈️";
 // Night = before that day's sunrise or after its sunset (from the daily forecast).
@@ -401,6 +414,32 @@ function comboChart(series, xOf, W) {
   };
 }
 
+// Day summary: icon, high/low, a quick plain-language summary, sunrise/sunset.
+const WX_WORDS = c => c === 0 ? "Clear" : c === 1 ? "Mostly clear" : c === 2 ? "Partly cloudy" : c === 3 ? "Cloudy"
+  : c <= 48 ? "Foggy" : c <= 57 ? "Drizzle" : c <= 67 ? "Rain" : c <= 77 ? "Snow" : c <= 82 ? "Showers"
+  : c <= 86 ? "Snow showers" : "Thunderstorms";
+const FEELS = hi => hi < 32 ? "freezing" : hi < 45 ? "cold" : hi < 60 ? "cool" : hi < 75 ? "mild" : hi < 85 ? "warm" : "hot";
+function renderDaySummary(date) {
+  const d = weatherData && weatherData.daily;
+  const j = d ? d.time.indexOf(date) : -1;
+  const wrap = el("div", "day-sum");
+  if (j < 0) return wrap;
+  const code = d.weather_code[j], hi = Math.round(d.temperature_2m_max[j]), lo = Math.round(d.temperature_2m_min[j]);
+  const rain = d.precipitation_probability_max[j];
+  const wet = rain >= 50 ? `rain likely (${rain}%)` : rain >= 20 ? `chance of rain (${rain}%)` : "dry";
+  const words = code >= 95 ? "Thunderstorms" : `${WX_WORDS(code)} and ${FEELS(hi)}`;
+  const [y, m, dd] = date.split("-").map(Number);
+  const dayName = new Date(y, m - 1, dd).toLocaleDateString("en-US", { weekday: "long" });
+  const text = el("div", "day-sum-text");
+  const hl = el("div", "day-sum-hl");
+  hl.append(el("b", null, `${hi}°`), el("span", null, ` / ${lo}°`));
+  text.append(hl, el("div", "day-sum-words", `${dayName}: ${words} · ${wet}`));
+  const sun = el("div", "day-sum-sun");
+  sun.append(el("div", null, `↑ ${fmt(d.sunrise[j].slice(11, 16))}`), el("div", null, `↓ ${fmt(d.sunset[j].slice(11, 16))}`));
+  wrap.append(el("div", "day-sum-icon", WX_ICON(code, false)), text, sun);
+  return wrap;
+}
+
 function renderHourly(plan) {
   const box = el("div", "hourly");
   if (weatherData && weatherData.error) { box.append(el("div", "todo-warn", weatherData.error)); return box; }
@@ -418,6 +457,8 @@ function renderHourly(plan) {
   if (!idx.length) { box.append(el("div", "cal-none", "No forecast for this day yet. It refreshes at your next check-in.")); return box; }
 
   const hasHum = Array.isArray(h.relative_humidity_2m);
+  if (plan.weather && plan.weather.alert) box.append(el("div", "alert wx-alert", "⚠ " + plan.weather.alert));
+  box.append(renderDaySummary(isToday ? now.date : plan.date));
   const head = el("div", "hourly-head");
   head.append(el("b", null, isToday ? "Next 24 hours" : `${plan.weekday}, hour by hour`),
               el("span", null, `as of ${weatherData.current ? fmt(weatherData.current.time.slice(11, 16)) : "last check-in"}`));
@@ -535,17 +576,6 @@ function render({ proposed, saved, todos }) {
   if (plan.headline) app.append(el("div", "headline", plan.headline));
 
   const row = el("div", "row");
-  if (plan.weather) {
-    const c = el("button", "chip chip-btn"); c.type = "button";
-    c.title = weatherOpen ? "Hide hourly forecast" : "Show hourly forecast";
-    c.append(el("div", "label", `Weather · hourly ${weatherOpen ? "▴" : "▾"}`), el("div", "value", plan.weather.summary));
-    if (plan.weather.alert) c.append(el("div", "alert", "⚠ " + plan.weather.alert));
-    c.addEventListener("click", () => {
-      weatherOpen = !weatherOpen;
-      if (weatherOpen) loadWeather(); else { last = ""; poll(); }
-    });
-    row.append(c);
-  }
   if (plan.assignment) {
     const a = plan.assignment;
     const c = el("div", `chip ${a.status === "behind" ? "behind" : ""}`);
@@ -558,7 +588,7 @@ function render({ proposed, saved, todos }) {
     bar.append(fill); c.append(bar); row.append(c);
   }
   app.append(row);
-  if (weatherOpen) app.append(renderHourly(plan));
+  app.append(renderHourly(plan));
   app.append(renderCommute(plan));
   app.append(renderCalendar(plan));
 
@@ -687,6 +717,7 @@ async function startBackground() {
   setInterval(check, CHECK_MS);
 }
 startBackground();
+loadWeather();   // the weather card is always shown, so fetch its data now
 </script>
 </body>
 </html>
