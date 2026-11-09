@@ -6,7 +6,7 @@
 <title>LifeHarness</title>
 <style>
   :root {
-    --bg: #f6f5f2; --card: #fff; --ink: #1d1d1f; --muted: #6e6e73; --line: #e5e3de;
+    --bg: #f6f5f2; --card: rgba(255, 255, 255, .86); --ink: #1d1d1f; --muted: #6e6e73; --line: #e5e3de;
     --work: #8e8e93; --class: #7c4dff; --school: #2f6fed; --exercise: #f08a24;
     --social: #e0457b; --chore: #2e9e6b; --free: #b8b8bd;
     --proposed: #b26b00; --proposed-bg: #fff4e0; --saved: #2e7d32; --saved-bg: #e8f5e9;
@@ -14,6 +14,25 @@
   * { box-sizing: border-box; }
   body { margin: 0; font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
          background: var(--bg); color: var(--ink); }
+  /* Muted rotating Windows Spotlight background */
+  .bg { position: fixed; inset: -20px; z-index: -1; background: center / cover no-repeat;
+        opacity: 0; transition: opacity 2.5s ease; filter: saturate(.5) blur(2px) brightness(1.05); }
+  .bg.show { opacity: .32; }
+  .chip, .item, .box, .commute { backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+  @media (prefers-reduced-motion: reduce) { .bg { transition: none; } }
+  #bg-caption { position: fixed; right: 12px; bottom: 10px; max-width: 45vw; font: inherit; font-size: 11px;
+                color: var(--muted); background: rgba(255, 255, 255, .7); padding: 3px 8px; border: 0;
+                border-radius: 6px; cursor: zoom-in; text-align: right; }
+  #bg-caption:hover { color: var(--ink); background: rgba(255, 255, 255, .92); }
+  #bg-caption:empty { display: none; }
+  /* Full-photo viewer */
+  #viewer { position: fixed; inset: 0; z-index: 10; background: rgba(0, 0, 0, .92); display: none;
+            flex-direction: column; align-items: center; justify-content: center; gap: 12px; cursor: zoom-out; }
+  #viewer.open { display: flex; }
+  #viewer img { max-width: 96vw; max-height: 86vh; object-fit: contain; border-radius: 6px; box-shadow: 0 10px 40px #000; }
+  #viewer .meta { color: #eee; font-size: 14px; text-align: center; }
+  #viewer .meta .credit { color: #aaa; font-size: 12px; margin-top: 2px; }
+  #viewer .hint { color: #777; font-size: 11px; }
   main { max-width: 560px; margin: 0 auto; padding: 28px 20px 48px; }
   .status { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px;
             font-size: 13px; font-weight: 600; margin-bottom: 14px; }
@@ -65,6 +84,13 @@
 </style>
 </head>
 <body>
+<div class="bg" id="bg0"></div><div class="bg" id="bg1"></div>
+<button id="bg-caption" type="button" title="View full photo"></button>
+<div id="viewer" role="dialog" aria-label="Full photo">
+  <img alt="">
+  <div class="meta"><div class="place"></div><div class="credit"></div></div>
+  <div class="hint">Click anywhere or press Esc to close</div>
+</div>
 <main id="app"><p class="empty">Waiting for your first check-in…<br>Say “good morning” to Claude.</p></main>
 <script>
 const COLORS = { work: "--work", class: "--class", school: "--school", exercise: "--exercise",
@@ -220,6 +246,59 @@ async function poll() {
 }
 poll();
 setInterval(poll, 2000);
+
+// One Windows Spotlight photo per day. The server fetches a new set when the date changes;
+// the page shows the first one that loads, and checks hourly in case it's left open overnight.
+const CHECK_MS = 60 * 60 * 1000;
+function isMicrosoftImage(url) {
+  try { const u = new URL(url); return u.protocol === "https:" && u.hostname.endsWith(".microsoft"); }
+  catch { return false; }
+}
+async function startBackground() {
+  const layers = [document.getElementById("bg0"), document.getElementById("bg1")];
+  const caption = document.getElementById("bg-caption");
+  let front = 0, current = null, currentPhoto = null;
+
+  // Click the caption -> full, unmuted photo. Click or Esc to close.
+  const viewer = document.getElementById("viewer");
+  caption.addEventListener("click", () => {
+    if (!currentPhoto) return;
+    viewer.querySelector("img").src = currentPhoto.url;
+    viewer.querySelector("img").alt = currentPhoto.place || "Background photo";
+    viewer.querySelector(".place").textContent = currentPhoto.place || "";
+    viewer.querySelector(".credit").textContent = currentPhoto.credit || "";
+    viewer.classList.add("open");
+  });
+  viewer.addEventListener("click", () => viewer.classList.remove("open"));
+  document.addEventListener("keydown", e => { if (e.key === "Escape") viewer.classList.remove("open"); });
+  function display(photos, i = 0) {
+    if (i >= photos.length) return;            // none loaded: keep what's showing
+    const p = photos[i];
+    if (p.url === current) return;             // same day, same photo: do nothing
+    const img = new Image();
+    img.onload = () => {
+      const next = layers[1 - front];
+      next.style.backgroundImage = `url("${p.url}")`;
+      next.classList.add("show");
+      layers[front].classList.remove("show");
+      front = 1 - front;
+      current = p.url;
+      currentPhoto = p;
+      caption.textContent = [p.place, p.credit].filter(Boolean).join(" · ");
+    };
+    img.onerror = () => display(photos, i + 1);  // broken image: use the day's next one
+    img.src = p.url;
+  }
+  async function check() {
+    try {
+      const photos = (await (await fetch("/api/photos")).json()).filter(p => isMicrosoftImage(p.url));
+      display(photos);
+    } catch { /* offline: keep the current photo or plain background */ }
+  }
+  check();
+  setInterval(check, CHECK_MS);
+}
+startBackground();
 </script>
 </body>
 </html>

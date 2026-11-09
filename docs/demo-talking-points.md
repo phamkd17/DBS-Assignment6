@@ -1,7 +1,7 @@
 # Demo talking points (3–5 min)
 
 Screen layout: **UI on the left, Claude Code on the right.** Type live.
-Items marked ⏳ aren't built yet (steps 3–4). Update this list once they are.
+Everything below is built. The only ⏳ left is the class-time confirmation.
 
 ---
 
@@ -11,11 +11,11 @@ Items marked ⏳ aren't built yet (steps 3–4). Update this list once they are.
 - "All my school work happens in the evenings and on weekends, so the harness really plans *those*."
 
 ## 0:30–2:00 · Live check-in
-- ⏳ Type `good morning`. Don't name the skill, so the audience sees Claude pick it on its own.
+- Type `good morning`. Don't name the skill, so the audience sees Claude pick it on its own. **The page opens by itself** on the left.
 - Point out what it reads: the LifeHarness calendar, the weather, and yesterday's notes.
-- ⏳ It asks one question: "Which step of the assignment are you on?" Answer it.
-- ⏳ It proposes a plan built around my school blocks, e.g. "Saturday: finish step 3, start step 4."
-- ⏳ Say "yes" → the plan is saved → **point at the UI updating on the left.**
+- It asks one question: "Which step of the assignment are you on?" Answer it.
+- It proposes a plan built around my school blocks, e.g. "Saturday: finish step 3, start step 4."
+- Say "yes" → the plan is saved → **point at the UI updating on the left.**
 - Optional: add an event on my phone in Google Calendar, say "I just added something, replan", and show it picked up.
 
 ## 2:00–2:45 · The hook: blocked live
@@ -69,6 +69,15 @@ Items marked ⏳ aren't built yet (steps 3–4). Update this list once they are.
 - **Suggestions link straight to the event.** Each suggested calendar change has an "Edit … in Google Calendar ↗" button. Claude can't edit my calendar, but it gets me one click away from making the change myself. The page only allows Google Calendar links, and Claude copies each link from the calendar data instead of building one.
   - Demo it: click the button, move the event in Google Calendar, then say "replan" and show the plan pick up the change.
 
+## The page: what's on it (tour it while Claude is "reading…", ~20 sec)
+- **The page opens by itself on "good morning".** The check-in starts the page server if it isn't running, then opens the page.
+- **Commute card: River North → Elk Grove Village.** "Leave 7:20 AM · usually ~40 min", plus a **"Check live traffic ↗"** button that opens Google Maps with live traffic. On days off it fades and says "No work today."
+  - Honest point: **Claude can't see live traffic.** The button is for *me*, and the context file tells Claude not to guess traffic. The page shows me more than Claude knows, and the harness knows the difference.
+- **Background: one Windows Spotlight photo per day.** It's the same photo-of-the-day feed Windows uses on its lock screen: muted so the plan stays readable, a new one each day, and it stays the same through reloads and server restarts.
+  - **A caption credits each photo** with the place and photographer, e.g. "Ice kayaker in Shiroka Polyana reservoir, Bulgaria · © …".
+  - **Click the caption → the full photo** opens sharp and in full color. Click anywhere or press Esc to close.
+- **✈️ The vacation game (personal touch, a good closer for the tour):** "These photos are our vacation inspiration. My friend and I pick a random date in the future, and wherever the photo is on that day, that's where we go." Demo it: click the caption to show today's full photo and say, "If today were our date, we'd be going to Bulgaria."
+
 ## Changes I asked for (my design input; shows this wasn't a one-shot)
 1. **"Link it to Google Calendar so when I add an event, the tool updates."** → I made a separate LifeHarness calendar that Claude reads live at every check-in, so new events show up on the next check-in or "replan".
 2. **I changed my data sources twice:** Chicago events → traffic → a made-up calendar plus live weather. I picked the made-up calendar for privacy and weather because it's live and free. (Chicago's traffic feed turned out to be stale.)
@@ -77,6 +86,18 @@ Items marked ⏳ aren't built yet (steps 3–4). Update this list once they are.
 5. **"Keep a running list of things I can add to."** → `docs/ideas.md`, a backlog of every suggestion plus my own ideas, with what's done.
 6. **I caught Claude's assumption** about my class time (guessed from the 5:30 PM deadline) and made it a talking point. See "Claude flagged its own assumption" below.
 7. **My answers shaped the rules.** The 2–3 minute check-in (my 6:50 → 7:20 morning), my school days (Mon, Wed, Thu, Sat, Sun), the 11 PM cutoff, "boxing can be skipped near a deadline, social plans rarely", and tracking progress **by step** because that's how my assignments are structured.
+8. **"Add traffic from River North to Elk Grove Village."** Live drive times need an API key (TomTom), so I chose the simpler option: a **"Check live traffic" button** to Google Maps. I also asked for Claude to read the traffic time on "good morning", but that would mean scraping Google Maps or signing up for a key, so I **kept it as a button**. A conscious scope decision the night before the deadline.
+9. **"When I say good morning, open the page."** → The check-in starts the server if needed and opens the page.
+10. **Background photos, three iterations:**
+    - First: **my own photos** from a Mood Board folder (227 photos, served from the folder, never copied into the public repo).
+    - Then: **Windows Spotlight** instead, so no personal photos end up in a video posted to Slack.
+    - Then: **"They change too quickly"** → from every 15 seconds to **once a day**, cached so a restart doesn't change it.
+11. **"If I click the photo's caption, open the full photo"** → a full-screen viewer, unmuted.
+12. **The vacation game** gave the background a real purpose: a random future date picks our next trip.
+
+## The background, behind the scenes (if asked)
+- Windows Spotlight has **no official API.** It uses the unofficial endpoint Windows itself calls, so it could change. If it fails, the page keeps yesterday's photo or shows a plain background, and never breaks.
+- **The photos are licensed to Microsoft** (Getty, Shutterstock, etc.), so they're shown on my local page with credit, never downloaded or committed. Only the day's photo *link* is cached.
 
 ## Things I learned building it (good for credibility)
 - **The import went to the wrong calendar.** The made-up events landed in my *real* calendar at first. That showed me why the harness should only read one specific calendar, by ID.
@@ -93,7 +114,8 @@ Items marked ⏳ aren't built yet (steps 3–4). Update this list once they are.
 ## Pre-recording checklist
 - [ ] Run `scripts/fetch-weather.sh` so the weather is fresh
 - [ ] Restart Claude Code so AGENTS.md loads fresh, and check `/context`
-- [ ] UI running in the browser on the left
+- [ ] UI server running (`python3 ui/server.py` in its own Terminal window), page open on the left
+- [ ] Check today's background photo and caption, and know where it is for the vacation-game line
 - [ ] Do one practice run, then reset today's plan file
 - [ ] Phone ready if doing the "add an event live" moment
 - [ ] Keep it under 5 minutes

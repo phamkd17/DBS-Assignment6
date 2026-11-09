@@ -20,6 +20,11 @@ Add anything here. Move items to "Done" when they're built.
 ## Your ideas
 -
 
+## Decided against
+- Photo history for the vacation game (saving each day's photo to look up past dates). Not needed.
+- A shared photo with a friend via Bing's Image of the Day (Spotlight shows each computer a different photo). Not needed.
+- Live drive time on "good morning" (TomTom key or scraping Google Maps). Kept the "Check live traffic" button.
+
 ## Done
 - [x] Google Calendar connected (LifeHarness calendar, made-up events)
 - [x] Live weather (Open-Meteo) → `data/weather.json`
@@ -30,4 +35,6 @@ Add anything here. Move items to "Done" when they're built.
 - [x] Hook: `.claude/hooks/protect-data.py`, on in `.claude/settings.json`; test with `./scripts/test-hook.sh`
 - [x] Commute card: River North → Elk Grove Village, "Check live traffic ↗" opens Google Maps (no key)
 - [x] "Good morning" opens the page (starts the server if it's not running)
+- [x] Muted rotating background: Windows Spotlight lock-screen photo (unofficial endpoint), **one photo per day**, with place + photographer caption. Click the caption to view the full photo. Replaced the Mood Board photos.
+- [ ] **Mood Board as an option.** Your own photos (`~/Desktop/Mood Board`) as a switchable background, e.g. `LIFEHARNESS_BG=moodboard`. Skim for private photos before any recording.
 - [x] Demo talking points (`docs/demo-talking-points.md`)
