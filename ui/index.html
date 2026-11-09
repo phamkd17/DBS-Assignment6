@@ -90,22 +90,39 @@
   /* Weather chip (clickable) + hourly forecast */
   .chip-btn { font: inherit; color: inherit; text-align: left; cursor: pointer; }
   .chip-btn:hover { border-color: var(--school); }
-  .hourly { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px;
-            margin: -8px 0 12px; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
-  .hourly-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 14px; margin-bottom: 6px; }
+  .hourly { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 7px 10px 6px;
+            margin: -8px 0 10px; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+  .hourly-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 13px; margin-bottom: 1px; }
   .hourly-head span { font-size: 12px; color: var(--muted); }
-  .hourly-strip { display: flex; gap: 4px; overflow-x: auto; padding-bottom: 6px; }
-  .hour { flex: 0 0 52px; text-align: center; border-radius: 8px; padding: 6px 0; font-variant-numeric: tabular-nums; }
-  .hour.wet { background: rgba(47, 111, 237, .07); }
-  .hour.storm { background: rgba(198, 40, 40, .09); box-shadow: inset 0 0 0 1.5px rgba(198, 40, 40, .45); }
-  .hour-t { font-size: 11px; color: var(--muted); }
-  .hour-i { font-size: 18px; line-height: 1.5; }
-  .hour-temp { font-weight: 600; font-size: 14px; }
-  .hour-bar { height: 28px; width: 8px; margin: 4px auto 2px; background: var(--line); border-radius: 4px;
+  .hourly-scroll { overflow-x: auto; padding-bottom: 2px; }
+  .hourly-inner { position: relative; }
+  .hourly-strip { display: flex; gap: 4px; }
+  .colbg { position: absolute; top: 0; bottom: 0; width: 40px; border-radius: 8px; pointer-events: none; }
+  .colbg.wet { background: rgba(47, 111, 237, .07); }
+  .colbg.storm { background: rgba(198, 40, 40, .09); box-shadow: inset 0 0 0 1.5px rgba(198, 40, 40, .45); }
+  .colbg.hover { background: rgba(42, 120, 214, .10); }
+  .hourly-strip, .hourly-inner > svg { position: relative; }
+  /* Combined temperature + humidity chart (palette validated: #2a78d6 humidity, #eb6834 temperature) */
+  .cc-legend { display: flex; flex-wrap: wrap; gap: 2px 12px; font-size: 11px; color: var(--ink); margin: 0 0 1px; }
+  .cc-key { display: inline-flex; align-items: center; gap: 6px; }
+  .cc-key i { width: 14px; height: 2px; border-radius: 1px; display: inline-block; }
+  .hourly-inner > svg { display: block; overflow: visible; }
+  .lc-line { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+  .lc-dot { stroke: #fff; stroke-width: 2; transition: r .12s ease; }
+  .cc-val { text-anchor: middle; font-variant-numeric: tabular-nums; }
+  .cc-val { font-size: 12px; font-weight: 700; }
+  .cc-val.temp { fill: #b9461a; }   /* darker shade of the temperature line, 5.3:1 on white */
+  .cc-val.hum { fill: #1d5fb0; }    /* darker shade of the humidity line, 6.3:1 on white */
+  .hourly-cross { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--muted); opacity: .35;
+                  display: none; pointer-events: none; }
+  .hour { flex: 0 0 40px; text-align: center; padding: 2px 0; font-variant-numeric: tabular-nums; }
+  .hour-t { font-size: 10px; color: var(--muted); }
+  .hour-i { font-size: 15px; line-height: 1.3; }
+  .hour-bar { height: 14px; width: 6px; margin: 0 auto 1px; background: var(--line); border-radius: 4px;
               display: flex; align-items: flex-end; overflow: hidden; }
   .hour-bar > div { width: 100%; background: var(--school); }
-  .hour-rain, .hour-hum { font-size: 10px; color: var(--muted); white-space: nowrap; }
-  .hourly-legend { display: flex; justify-content: space-between; gap: 8px; font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .hour-rain { font-size: 9.5px; color: var(--muted); white-space: nowrap; }
+  .hourly-legend { display: flex; justify-content: space-between; gap: 8px; font-size: 10.5px; color: var(--muted); margin-top: 1px; }
   .storm-note { color: #c62828; font-weight: 600; }
   /* To-dos */
   .todos .todo-row { display: flex; align-items: center; gap: 10px; }
@@ -318,18 +335,75 @@ function renderTodos(todos) {
 // ---- Hourly weather (click the Weather chip) ----
 // Reads the same weather file Claude plans from, via /api/weather (read-only).
 let weatherOpen = false, weatherData = null;
-const WX_ICON = c => c === 0 ? "☀️" : c <= 2 ? "🌤️" : c === 3 ? "☁️" : c <= 48 ? "🌫️" : c <= 57 ? "🌦️"
-  : c <= 67 ? "🌧️" : c <= 77 ? "🌨️" : c <= 82 ? "🌧️" : c <= 86 ? "🌨️" : "⛈️";
+const WX_ICON = (c, night) => c <= 1 ? (night ? "🌙" : c === 0 ? "☀️" : "🌤️") : c === 2 ? (night ? "☁️" : "⛅")
+  : c === 3 ? "☁️" : c <= 48 ? "🌫️" : c <= 57 ? "🌦️" : c <= 67 ? "🌧️" : c <= 77 ? "🌨️" : c <= 82 ? "🌧️" : c <= 86 ? "🌨️" : "⛈️";
+// Night = before that day's sunrise or after its sunset (from the daily forecast).
+function isNight(w, t) {
+  const d = w.daily; if (!d || !d.sunrise) return false;
+  const j = d.time.indexOf(t.slice(0, 10)); if (j < 0) return false;
+  return t < d.sunrise[j] || t >= d.sunset[j];
+}
 const WX_STORM = c => c >= 95;
 
 async function loadWeather() {
-  try { weatherData = await (await fetch("/api/weather", { cache: "no-store" })).json(); }
-  catch { weatherData = null; }
+  try {
+    const r = await fetch("/api/weather", { cache: "no-store" });
+    weatherData = r.ok ? await r.json() : { error: r.status === 404
+      ? "The page server is out of date. Restart it (Ctrl+C, then python3 ui/server.py) and refresh."
+      : `Couldn't load the forecast (${r.status}).` };
+  } catch { weatherData = { error: "Couldn't reach the page server. Is it running?" }; }
   last = ""; poll();
+}
+
+// Temperature and humidity on ONE chart with ONE shared scale (no second y-axis).
+// Every hour has a dot and its value, styled like the hourly strip. At each hour the upper
+// point is labeled above its dot and the lower one below, so labels never collide.
+// Lines 2px, dots r=4 with a 2px surface ring; labels use ink colors, never the line color.
+const SVGNS = "http://www.w3.org/2000/svg";
+function svgEl(tag, attrs) {
+  const n = document.createElementNS(SVGNS, tag);
+  for (const k in attrs) n.setAttribute(k, attrs[k]);
+  return n;
+}
+function comboChart(series, xOf, W) {
+  const H = 96, TOP = 18, BOT = 20;
+  const vals = series.flatMap(s => s.vals);
+  const lo = Math.min(...vals), hi = Math.max(...vals), span = hi - lo || 1;
+  const yOf = v => TOP + (1 - (v - lo) / span) * (H - TOP - BOT);
+  const svg = svgEl("svg", { width: W, height: H, viewBox: `0 0 ${W} ${H}`, role: "img",
+    "aria-label": series.map(s => `${s.name}: ${Math.round(Math.min(...s.vals))}–${Math.round(Math.max(...s.vals))}${s.unit}`).join("; ") });
+  const lines = series.map(s => ({ s, pts: s.vals.map((v, k) => [xOf(k), yOf(v)]) }));
+
+  lines.forEach(({ s, pts }) => svg.append(svgEl("path", {
+    d: pts.map((p, k) => `${k ? "L" : "M"}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(" "),
+    class: "lc-line", style: `stroke:${s.color}` })));
+
+  const dots = lines.map(() => []);
+  const n = lines[0].pts.length;
+  for (let k = 0; k < n; k++) {
+    // which series is higher on screen at this hour (smaller y = higher)
+    const order = lines.map((l, j) => j).sort((a, b) => lines[a].pts[k][1] - lines[b].pts[k][1]);
+    order.forEach((j, rank) => {
+      const { s, pts } = lines[j], [x, y] = pts[k];
+      const above = rank === 0 || order.length === 1;
+      const t = svgEl("text", { x, y: above ? y - 8 : y + 16, class: `cc-val ${s.key}` });
+      t.textContent = `${Math.round(s.vals[k])}${s.short}`;
+      svg.append(t);
+      const d = svgEl("circle", { cx: x, cy: y, r: 3.5, class: "lc-dot", style: `fill:${s.color}` });
+      dots[j].push(d);
+    });
+  }
+  dots.flat().forEach(d => svg.append(d));   // dots above lines and labels
+  return {
+    svg,
+    show(k) { dots.forEach(ds => ds.forEach((d, i) => d.setAttribute("r", i === k ? 5 : 3.5))); },
+    hide() { dots.forEach(ds => ds.forEach(d => d.setAttribute("r", 3.5))); },
+  };
 }
 
 function renderHourly(plan) {
   const box = el("div", "hourly");
+  if (weatherData && weatherData.error) { box.append(el("div", "todo-warn", weatherData.error)); return box; }
   const h = weatherData && weatherData.hourly;
   if (!h) { box.append(el("div", "cal-none", "Loading the forecast…")); return box; }
 
@@ -349,25 +423,69 @@ function renderHourly(plan) {
               el("span", null, `as of ${weatherData.current ? fmt(weatherData.current.time.slice(11, 16)) : "last check-in"}`));
   box.append(head);
 
-  const strip = el("div", "hourly-strip");
+  // Charts and strip share one scrolling area so every hour lines up in one column.
+  const STEP = 44, W = idx.length * STEP - 4, xOf = k => k * STEP + 20;
+  const hourLabel = i => fmt(h.time[i].slice(11, 16)).replace(":00", "");
+  const scroll = el("div", "hourly-scroll"), inner = el("div", "hourly-inner");
+  inner.style.width = `${W}px`;
+
+  // One chart, two series, one shared axis. Fixed categorical order: humidity = slot 1, temperature = slot 2.
+  const series = [];
+  if (hasHum) series.push({ key: "hum", name: "Humidity", unit: "%", short: "%", color: "#2a78d6", vals: idx.map(i => h.relative_humidity_2m[i]) });
+  series.push({ key: "temp", name: "Temperature", unit: "°F", short: "°", color: "#eb6834", vals: idx.map(i => h.temperature_2m[i]) });
+  const chart = comboChart(series, xOf, W);
+  const charts = [chart];
+  const legend2 = el("div", "cc-legend");
+  series.forEach(s => {
+    const item = el("span", "cc-key"), sw = el("i"); sw.style.background = s.color;
+    item.append(sw, `${s.name} (${s.unit}) · ${Math.round(Math.min(...s.vals))}–${Math.round(Math.max(...s.vals))}${s.short}`);
+    legend2.append(item);
+  });
+  box.append(legend2);
+  // Column backgrounds (full height): rain tint, storm outline, hover highlight.
+  const bgs = idx.map((i, k) => {
+    const code = h.weather_code[i], rain = h.precipitation_probability[i];
+    const bg = el("div", `colbg ${WX_STORM(code) ? "storm" : ""} ${rain >= 50 ? "wet" : ""}`);
+    bg.style.left = `${k * STEP}px`;
+    return bg;
+  });
+  inner.append(...bgs);
+
+  // Top: time + icon. Middle: the trend lines. Bottom: chance of rain.
+  const top = el("div", "hourly-strip"), bottom = el("div", "hourly-strip");
   idx.forEach(i => {
     const code = h.weather_code[i], rain = h.precipitation_probability[i];
-    const col = el("div", `hour ${WX_STORM(code) ? "storm" : ""} ${rain >= 50 ? "wet" : ""}`);
-    col.title = WX_STORM(code) ? "Thunderstorm" : "";
-    col.append(el("div", "hour-t", fmt(h.time[i].slice(11, 16)).replace(":00", "")),
-               el("div", "hour-i", WX_ICON(code)),
-               el("div", "hour-temp", `${Math.round(h.temperature_2m[i])}°`));
-    const bar = el("div", "hour-bar"), fill = el("div");
+    const t = el("div", "hour");
+    if (WX_STORM(code)) t.title = "Thunderstorm";
+    t.append(el("div", "hour-t", hourLabel(i)), el("div", "hour-i", WX_ICON(code, isNight(weatherData, h.time[i]))));
+    top.append(t);
+    const btm = el("div", "hour"), bar = el("div", "hour-bar"), fill = el("div");
     fill.style.height = `${rain}%`; bar.append(fill);
-    col.append(bar, el("div", "hour-rain", `💧${rain}%`),
-               el("div", "hour-hum", hasHum ? `${Math.round(h.relative_humidity_2m[i])}% RH` : "–"));
-    strip.append(col);
+    btm.append(bar, el("div", "hour-rain", `💧${rain}%`));
+    bottom.append(btm);
   });
-  box.append(strip);
+  inner.append(top, chart.svg, bottom);
+  const cols = bgs;
+
+  // Hover layer: guide line through the chart + strip, bigger dots, column highlight.
+  // (No tooltip: every value is already labeled on the chart, and a tooltip would cover labels.)
+  const cross = el("div", "hourly-cross");
+  inner.append(cross);
+  const hide = () => { cross.style.display = "none";
+    charts.forEach(c => c.hide()); cols.forEach(c => c.classList.remove("hover")); };
+  inner.addEventListener("pointermove", e => {
+    const k = Math.max(0, Math.min(idx.length - 1, Math.floor((e.clientX - inner.getBoundingClientRect().left) / STEP)));
+    cross.style.display = "block"; cross.style.left = `${xOf(k)}px`;
+    charts.forEach(c => c.show(k));
+    cols.forEach((c, j) => c.classList.toggle("hover", j === k));
+  });
+  inner.addEventListener("pointerleave", hide);
+  scroll.append(inner);
+  box.append(scroll);
 
   const storms = idx.filter(i => WX_STORM(h.weather_code[i]));
   const legend = el("div", "hourly-legend");
-  legend.append(el("span", null, "🌡 temp · 💧 chance of rain · RH humidity"),
+  legend.append(el("span", null, "💧 chance of rain"),
                 el("span", storms.length ? "storm-note" : null,
                    storms.length ? `⛈ Storms around ${fmt(h.time[storms[0]].slice(11, 16))}` : "No storms expected"));
   box.append(legend);
