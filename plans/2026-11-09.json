@@ -1,0 +1,63 @@
+{
+  "date": "2026-11-09",
+  "weekday": "Monday",
+  "saved_at": "2026-11-09T15:24:05-06:00",
+  "headline": "Last night before the deadline: record the demo and submit tonight.",
+  "weather": {
+    "summary": "Mostly clear, 36→57°F",
+    "alert": null
+  },
+  "assignment": {
+    "name": "A6 LifeHarness",
+    "due": "2026-11-10T17:30:00-06:00",
+    "step": 5,
+    "total_steps": 5,
+    "status": "on track"
+  },
+  "timeline": [
+    {
+      "start": "08:00",
+      "end": "17:00",
+      "title": "Work",
+      "kind": "work"
+    },
+    {
+      "start": "17:30",
+      "end": "18:30",
+      "title": "Boxing",
+      "kind": "exercise"
+    },
+    {
+      "start": "19:00",
+      "end": "19:30",
+      "title": "A6 step 5: restart the page server + Claude Code, one practice run",
+      "kind": "school"
+    },
+    {
+      "start": "19:30",
+      "end": "20:30",
+      "title": "Laundry",
+      "kind": "chore",
+      "note": "Rehearse the 4-minute script while it runs"
+    },
+    {
+      "start": "20:30",
+      "end": "21:30",
+      "title": "A6 step 5: record the demo, post in #general, submit the link in Classroom",
+      "kind": "school"
+    },
+    {
+      "start": "21:30",
+      "end": "23:00",
+      "title": "Buffer: re-record if needed",
+      "kind": "free"
+    }
+  ],
+  "suggestions": [],
+  "look_ahead": [
+    {
+      "day": "Tue",
+      "plan": "Nothing left if you submit tonight. Due 5:30 PM, then class."
+    }
+  ]
+}
