@@ -8,6 +8,7 @@ Add anything here. Move items to "Done" when they're built.
 - [ ] **Hook also blocks reads of other calendars.** AGENTS.md *asks* Claude to read only LifeHarness; the hook would *enforce* it. Good "decides vs. enforces" demo point.
 - [ ] **Permission deny rules as a second layer.** `permissions.deny` in `.claude/settings.json` (e.g. `Edit(data/**)`, the calendar write tools) on top of the hook. Two independent locks.
 - [ ] **Hook protects itself.** Block edits to `.claude/hooks/` and `.claude/settings.json` so Claude can't turn the hook off. (Skipped for now so it can still be fixed during building; you'd edit it by hand after that.)
+- [ ] **Fewer false blocks in the hook.** It blocked a git commit because the *message* mentioned "data/". It could ignore quoted text and here-docs, or allow `git commit -F <file>` explicitly.
 - [ ] **Fetch weather overnight on a schedule** (macOS launchd, ~6:30 AM) so it's already fresh at check-in. The brief mentions "waiting when you wake up."
 - [ ] **Live replan demo moment:** add an event on your phone mid-demo, say "I just added something, replan," and show the UI update.
 - [ ] **Chicago events (Ticketmaster Discovery API, free key)** as a bonus third source, e.g. suggest something fun for Friday nights.

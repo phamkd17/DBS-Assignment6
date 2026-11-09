@@ -25,6 +25,7 @@ Items marked ⏳ aren't built yet (steps 3–4). Update this list once they are.
 - Optional backup (if the live attempt is awkward): run `./scripts/test-hook.sh`, which feeds 23 fake tool calls to the hook and shows PASS/BLOCK for each.
 - What the hook covers: no calendar create/update/delete; reads **only** from the LifeHarness calendar (a missing calendar ID would default to my main calendar, so that's blocked too); no Write/Edit in `data/`; no shell commands touching `data/`; the weather script itself is protected.
 - Honest limit: shell commands are checked by text matching, so a deliberately disguised command could get past it. The Write/Edit and calendar checks are exact.
+- **Story: the hook blocked Claude's own git commit, twice.** The commit message mentioned "data/", and later "fetch-weather.sh" plus a ">" from the co-author email, so the hook treated harmless text as a risky command. Claude worked around it by writing the message to a file. The point: text matching errs on the side of blocking. It's strict, sometimes too strict, and never quietly lets something through. That's the tradeoff of enforcing in code instead of trusting the model.
 
 ## 2:45–4:30 · Explain the harness (the three things the brief asks for)
 
