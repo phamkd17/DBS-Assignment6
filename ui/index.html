@@ -99,6 +99,44 @@
   .hourly-scroll::-webkit-scrollbar-track { background: rgba(42, 120, 214, .07); border-radius: 3px; }
   .hourly-scroll::-webkit-scrollbar-thumb { background: rgba(42, 120, 214, .40); border-radius: 3px; }
   .hourly-scroll::-webkit-scrollbar-thumb:hover { background: rgba(42, 120, 214, .65); }
+  .week { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 13px;
+          padding: 0 0 6px; margin-bottom: 6px; border-bottom: 1px solid var(--line); }
+  .week:empty { display: none; }
+  .week-link { font: inherit; border: 0; cursor: pointer; display: inline-flex; align-items: baseline; gap: 5px; padding: 3px 10px; border-radius: 8px;
+               background: #eaf1ff; color: var(--ink); text-decoration: none; font-variant-numeric: tabular-nums; }
+  .week-link:hover { background: #dbe7ff; }
+  .week-hi { font-weight: 700; color: #b9461a; }
+  .week-lo { font-weight: 700; color: #1d5fb0; }
+  .week-lbl { font-size: 11px; color: var(--muted); }
+  .week-date { font-size: 11px; color: var(--muted); }
+  .week-sep { color: var(--muted); }
+  .week-arrow { font-size: 12px; color: #1a56db; margin-left: 2px; }
+  .fc-overlay { position: fixed; inset: 0; z-index: 15; background: rgba(20, 20, 20, .35);
+                display: flex; align-items: center; justify-content: center; padding: 20px;
+                backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
+  .fc-panel { width: min(560px, 100%); max-height: 90vh; overflow: auto; background: #fff; border-radius: 14px;
+              padding: 14px 16px 10px; box-shadow: 0 20px 60px rgba(0,0,0,.25); }
+  .fc-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
+  .fc-head b { font-size: 17px; }
+  .fc-sub { font-size: 11px; color: var(--muted); }
+  .fc-close { font: inherit; font-size: 22px; line-height: 1; width: 30px; height: 30px; border: 0; border-radius: 8px;
+              background: #f1f0ec; color: var(--ink); cursor: pointer; }
+  .fc-row { display: grid; grid-template-columns: 1.1fr 1.3fr 1.6fr; align-items: center; gap: 10px;
+            padding: 9px 0; border-top: 1px solid var(--line); }
+  .fc-day b { display: block; font-size: 14px; }
+  .fc-day span { font-size: 10.5px; color: var(--muted); white-space: pre; }
+  .fc-cond { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+  .fc-icon { font-size: 20px; }
+  .fc-rain { font-size: 11px; color: var(--muted); margin-left: auto; }
+  .fc-temps { display: flex; align-items: center; gap: 8px; font-variant-numeric: tabular-nums; font-size: 13px; }
+  .fc-lo, .fc-hi { width: 44px; white-space: nowrap; }
+  .fc-lo { text-align: right; color: var(--muted); }
+  .fc-hi { font-weight: 700; }
+  .fc-lo.peak { color: #1d5fb0; font-weight: 700; }
+  .fc-hi.peak { color: #b9461a; }
+  .fc-bar { position: relative; flex: 1; height: 6px; border-radius: 3px; background: #eceae4; }
+  .fc-bar > div { position: absolute; top: 0; bottom: 0; border-radius: 3px; background: #eb6834; }
+  .fc-note { font-size: 11px; color: var(--muted); padding-top: 8px; border-top: 1px solid var(--line); }
   .day-sum { display: flex; align-items: center; gap: 10px; padding: 2px 0 6px; margin-bottom: 4px;
              border-bottom: 1px solid var(--line); }
   .day-sum:empty { display: none; }
@@ -440,6 +478,87 @@ function renderDaySummary(date) {
   return wrap;
 }
 
+// Next 7 days: just the week's peak high and lowest low. Click to open the full forecast
+// (built from the same weather file). Uses however many days the file has.
+function renderWeek(today) {
+  const d = weatherData && weatherData.daily;
+  const wrap = el("div", "week");
+  if (!d) return wrap;
+  const js = d.time.map((t, j) => j).filter(j => d.time[j] >= today).slice(0, 7);
+  if (!js.length) return wrap;
+  const his = js.map(j => d.temperature_2m_max[j]), los = js.map(j => d.temperature_2m_min[j]);
+
+  const link = el("button", "week-link"); link.type = "button";
+  link.title = "Open the full forecast";
+  link.addEventListener("click", () => openForecast(today));
+  // The week's peaks, each with the date it falls on (usually different days).
+  const jHi = js[his.indexOf(Math.max(...his))], jLo = js[los.indexOf(Math.min(...los))];
+  const when = t => { const [y, m, dd] = t.split("-").map(Number);
+    return new Date(y, m - 1, dd).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }); };
+  link.append(el("span", "week-lbl", "High"), el("span", "week-hi", `▲ ${Math.round(Math.max(...his))}°`),
+              el("span", "week-date", when(d.time[jHi])),
+              el("span", "week-sep", "·"),
+              el("span", "week-lbl", "Low"), el("span", "week-lo", `▼ ${Math.round(Math.min(...los))}°`),
+              el("span", "week-date", when(d.time[jLo])),
+              el("span", "week-arrow", "↗"));
+  wrap.append(el("b", null, `Next ${js.length} days`), link);
+  return wrap;
+}
+
+// Full forecast overlay, from the same weather file as the card (Open-Meteo).
+// One row per day: icon, conditions, rain, and a low→high bar on the week's shared scale.
+function openForecast(today) {
+  const w = weatherData, d = w && w.daily;
+  if (!d) return;
+  const js = d.time.map((t, j) => j).filter(j => d.time[j] >= today).slice(0, 7);
+  if (!js.length) return;
+  const wLo = Math.min(...js.map(j => d.temperature_2m_min[j])), wHi = Math.max(...js.map(j => d.temperature_2m_max[j]));
+  const span = wHi - wLo || 1;
+  const name = t => { const [y, m, dd] = t.split("-").map(Number);
+    return t === today ? "Today" : new Date(y, m - 1, dd).toLocaleDateString("en-US", { weekday: "long" }); };
+
+  const overlay = el("div", "fc-overlay");
+  const panel = el("div", "fc-panel");
+  const head = el("div", "fc-head");
+  const title = el("div");
+  title.append(el("b", null, `Chicago · ${js.length}-day forecast`),
+               el("div", "fc-sub", `Open-Meteo · as of ${w.current ? fmt(w.current.time.slice(11, 16)) : "last check-in"}`));
+  const close = el("button", "fc-close", "×"); close.type = "button"; close.title = "Close (Esc)";
+  head.append(title, close);
+  panel.append(head);
+
+  js.forEach(j => {
+    const lo = d.temperature_2m_min[j], hi = d.temperature_2m_max[j], code = d.weather_code[j];
+    const row = el("div", "fc-row");
+    const left = el("div", "fc-day");
+    left.append(el("b", null, name(d.time[j])),
+                el("span", null, `↑ ${fmt(d.sunrise[j].slice(11, 16))}  ↓ ${fmt(d.sunset[j].slice(11, 16))}`));
+    const cond = el("div", "fc-cond");
+    cond.append(el("span", "fc-icon", WX_ICON(code, false)),
+                el("span", null, WX_WORDS(code)),
+                el("span", "fc-rain", `💧${d.precipitation_probability_max[j]}%`));
+    const temps = el("div", "fc-temps");
+    const bar = el("div", "fc-bar"), seg = el("div");
+    seg.style.left = `${((lo - wLo) / span) * 100}%`;
+    seg.style.width = `${Math.max(4, ((hi - lo) / span) * 100)}%`;
+    bar.append(seg);
+    temps.append(el("span", `fc-lo ${lo === wLo ? "peak" : ""}`, `${lo === wLo ? "▼ " : ""}${Math.round(lo)}°`), bar,
+                 el("span", `fc-hi ${hi === wHi ? "peak" : ""}`, `${hi === wHi ? "▲ " : ""}${Math.round(hi)}°`));
+    row.append(left, cond, temps);
+    panel.append(row);
+  });
+  if (js.length < 7) panel.append(el("div", "fc-note",
+    `Showing ${js.length} days: the weather script asks for ${d.time.length}. Change forecast_days to 7 for the full week.`));
+  overlay.append(panel);
+  document.body.append(overlay);
+
+  const shut = () => { overlay.remove(); document.removeEventListener("keydown", onKey); };
+  const onKey = e => { if (e.key === "Escape") shut(); };
+  close.addEventListener("click", shut);
+  overlay.addEventListener("click", e => { if (e.target === overlay) shut(); });
+  document.addEventListener("keydown", onKey);
+}
+
 function renderHourly(plan) {
   const box = el("div", "hourly");
   if (weatherData && weatherData.error) { box.append(el("div", "todo-warn", weatherData.error)); return box; }
@@ -458,6 +577,7 @@ function renderHourly(plan) {
 
   const hasHum = Array.isArray(h.relative_humidity_2m);
   if (plan.weather && plan.weather.alert) box.append(el("div", "alert wx-alert", "⚠ " + plan.weather.alert));
+  box.append(renderWeek(now.date));
   box.append(renderDaySummary(isToday ? now.date : plan.date));
   const head = el("div", "hourly-head");
   head.append(el("b", null, isToday ? "Next 24 hours" : `${plan.weekday}, hour by hour`),

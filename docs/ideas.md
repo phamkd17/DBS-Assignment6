@@ -27,6 +27,7 @@ Add anything here. Move items to "Done" when they're built.
 - Live drive time on "good morning" (TomTom key or scraping Google Maps). Kept the "Check live traffic" button.
 
 ## Done
+- [x] Week peaks (High ▲ / Low ▼ for the next 7 days) at the top of the weather card; click for a full 7-day forecast from the same data.
 - [x] Weather card (always open): day summary (icon, high/low, quick summary, sunrise/sunset) and one chart with temperature + humidity lines (shared axis), chance of rain, storms, with hover values (reads the same weather file Claude uses).
 - [x] Calendar links open in the UChicago Google account (`GOOGLE_ACCOUNT` in the git-ignored `.env`, added as `authuser`).
 - [x] Opening animation: today's photo full-screen for 0.25 s, then fades into the muted background (click to skip).
