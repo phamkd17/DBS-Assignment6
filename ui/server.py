@@ -168,6 +168,9 @@ class Handler(SimpleHTTPRequestHandler):
             return self.send_json(state())
         if self.path.startswith("/api/photos"):
             return self.send_json(spotlight_photos())
+        if self.path.startswith("/api/weather"):
+            # Read-only: the same weather file Claude plans from (refreshed by scripts/fetch-weather.sh).
+            return self.send_json(load(ROOT / "data" / "weather.json"))
         if self.path.startswith("/api/config"):
             return self.send_json({"google_account": local_settings().get("GOOGLE_ACCOUNT", "")})
         super().do_GET()

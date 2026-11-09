@@ -27,6 +27,7 @@ Add anything here. Move items to "Done" when they're built.
 - Live drive time on "good morning" (TomTom key or scraping Google Maps). Kept the "Check live traffic" button.
 
 ## Done
+- [x] Hourly forecast: click the Weather chip for temperature, chance of rain, humidity, storms (reads the same weather file Claude uses).
 - [x] Calendar links open in the UChicago Google account (`GOOGLE_ACCOUNT` in the git-ignored `.env`, added as `authuser`).
 - [x] Opening animation: today's photo full-screen for 0.25 s, then fades into the muted background (click to skip).
 - [x] Calendar card: "Open calendar ↗" (the plan's day) and "+ Add event ↗". Khang edits in Google Calendar, then says "replan".

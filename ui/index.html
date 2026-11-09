@@ -87,6 +87,26 @@
   .card-links .cal-link { text-align: center; }
   .suggest li { display: flex; flex-direction: column; align-items: flex-start; }
   .suggest li::before { display: none; }
+  /* Weather chip (clickable) + hourly forecast */
+  .chip-btn { font: inherit; color: inherit; text-align: left; cursor: pointer; }
+  .chip-btn:hover { border-color: var(--school); }
+  .hourly { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px;
+            margin: -8px 0 12px; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+  .hourly-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 14px; margin-bottom: 6px; }
+  .hourly-head span { font-size: 12px; color: var(--muted); }
+  .hourly-strip { display: flex; gap: 4px; overflow-x: auto; padding-bottom: 6px; }
+  .hour { flex: 0 0 52px; text-align: center; border-radius: 8px; padding: 6px 0; font-variant-numeric: tabular-nums; }
+  .hour.wet { background: rgba(47, 111, 237, .07); }
+  .hour.storm { background: rgba(198, 40, 40, .09); box-shadow: inset 0 0 0 1.5px rgba(198, 40, 40, .45); }
+  .hour-t { font-size: 11px; color: var(--muted); }
+  .hour-i { font-size: 18px; line-height: 1.5; }
+  .hour-temp { font-weight: 600; font-size: 14px; }
+  .hour-bar { height: 28px; width: 8px; margin: 4px auto 2px; background: var(--line); border-radius: 4px;
+              display: flex; align-items: flex-end; overflow: hidden; }
+  .hour-bar > div { width: 100%; background: var(--school); }
+  .hour-rain, .hour-hum { font-size: 10px; color: var(--muted); white-space: nowrap; }
+  .hourly-legend { display: flex; justify-content: space-between; gap: 8px; font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .storm-note { color: #c62828; font-weight: 600; }
   /* To-dos */
   .todos .todo-row { display: flex; align-items: center; gap: 10px; }
   .todos input[type=checkbox] { width: 17px; height: 17px; accent-color: var(--saved); cursor: pointer; flex-shrink: 0; }
@@ -295,6 +315,66 @@ function renderTodos(todos) {
   return frag;
 }
 
+// ---- Hourly weather (click the Weather chip) ----
+// Reads the same weather file Claude plans from, via /api/weather (read-only).
+let weatherOpen = false, weatherData = null;
+const WX_ICON = c => c === 0 ? "☀️" : c <= 2 ? "🌤️" : c === 3 ? "☁️" : c <= 48 ? "🌫️" : c <= 57 ? "🌦️"
+  : c <= 67 ? "🌧️" : c <= 77 ? "🌨️" : c <= 82 ? "🌧️" : c <= 86 ? "🌨️" : "⛈️";
+const WX_STORM = c => c >= 95;
+
+async function loadWeather() {
+  try { weatherData = await (await fetch("/api/weather", { cache: "no-store" })).json(); }
+  catch { weatherData = null; }
+  last = ""; poll();
+}
+
+function renderHourly(plan) {
+  const box = el("div", "hourly");
+  const h = weatherData && weatherData.hourly;
+  if (!h) { box.append(el("div", "cal-none", "Loading the forecast…")); return box; }
+
+  // Plan for today (or a past day, or a day not in the forecast): the next 24 h from now.
+  // Plan for a future day in the forecast: 6 AM–11 PM of that day.
+  const now = chicagoNow();
+  const all = h.time.map((t, i) => i);
+  const planDay = all.filter(i => h.time[i].startsWith(plan.date) && +h.time[i].slice(11, 13) >= 6);
+  const isToday = plan.date <= now.date || !planDay.length;
+  const idx = isToday ? all.filter(i => h.time[i] >= `${now.date}T${now.time.slice(0, 2)}:00`).slice(0, 24)
+                      : planDay.slice(0, 18);
+  if (!idx.length) { box.append(el("div", "cal-none", "No forecast for this day yet. It refreshes at your next check-in.")); return box; }
+
+  const hasHum = Array.isArray(h.relative_humidity_2m);
+  const head = el("div", "hourly-head");
+  head.append(el("b", null, isToday ? "Next 24 hours" : `${plan.weekday}, hour by hour`),
+              el("span", null, `as of ${weatherData.current ? fmt(weatherData.current.time.slice(11, 16)) : "last check-in"}`));
+  box.append(head);
+
+  const strip = el("div", "hourly-strip");
+  idx.forEach(i => {
+    const code = h.weather_code[i], rain = h.precipitation_probability[i];
+    const col = el("div", `hour ${WX_STORM(code) ? "storm" : ""} ${rain >= 50 ? "wet" : ""}`);
+    col.title = WX_STORM(code) ? "Thunderstorm" : "";
+    col.append(el("div", "hour-t", fmt(h.time[i].slice(11, 16)).replace(":00", "")),
+               el("div", "hour-i", WX_ICON(code)),
+               el("div", "hour-temp", `${Math.round(h.temperature_2m[i])}°`));
+    const bar = el("div", "hour-bar"), fill = el("div");
+    fill.style.height = `${rain}%`; bar.append(fill);
+    col.append(bar, el("div", "hour-rain", `💧${rain}%`),
+               el("div", "hour-hum", hasHum ? `${Math.round(h.relative_humidity_2m[i])}% RH` : "–"));
+    strip.append(col);
+  });
+  box.append(strip);
+
+  const storms = idx.filter(i => WX_STORM(h.weather_code[i]));
+  const legend = el("div", "hourly-legend");
+  legend.append(el("span", null, "🌡 temp · 💧 chance of rain · RH humidity"),
+                el("span", storms.length ? "storm-note" : null,
+                   storms.length ? `⛈ Storms around ${fmt(h.time[storms[0]].slice(11, 16))}` : "No storms expected"));
+  box.append(legend);
+  if (!hasHum) box.append(el("div", "cal-none", "Humidity isn't in the weather data yet. It appears once the weather script requests it."));
+  return box;
+}
+
 // Calendar card: quick links so Khang can add/move/delete events in Google Calendar
 // (Claude never edits the calendar; Khang does, then says "replan").
 function renderCalendar(plan) {
@@ -338,9 +418,14 @@ function render({ proposed, saved, todos }) {
 
   const row = el("div", "row");
   if (plan.weather) {
-    const c = el("div", "chip");
-    c.append(el("div", "label", "Weather"), el("div", "value", plan.weather.summary));
+    const c = el("button", "chip chip-btn"); c.type = "button";
+    c.title = weatherOpen ? "Hide hourly forecast" : "Show hourly forecast";
+    c.append(el("div", "label", `Weather · hourly ${weatherOpen ? "▴" : "▾"}`), el("div", "value", plan.weather.summary));
     if (plan.weather.alert) c.append(el("div", "alert", "⚠ " + plan.weather.alert));
+    c.addEventListener("click", () => {
+      weatherOpen = !weatherOpen;
+      if (weatherOpen) loadWeather(); else { last = ""; poll(); }
+    });
     row.append(c);
   }
   if (plan.assignment) {
@@ -355,6 +440,7 @@ function render({ proposed, saved, todos }) {
     bar.append(fill); c.append(bar); row.append(c);
   }
   app.append(row);
+  if (weatherOpen) app.append(renderHourly(plan));
   app.append(renderCommute(plan));
   app.append(renderCalendar(plan));
 
