@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LifeHarness</title>
+<style>
+  :root {
+    --bg: #f6f5f2; --card: #fff; --ink: #1d1d1f; --muted: #6e6e73; --line: #e5e3de;
+    --work: #8e8e93; --class: #7c4dff; --school: #2f6fed; --exercise: #f08a24;
+    --social: #e0457b; --chore: #2e9e6b; --free: #b8b8bd;
+    --proposed: #b26b00; --proposed-bg: #fff4e0; --saved: #2e7d32; --saved-bg: #e8f5e9;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+         background: var(--bg); color: var(--ink); }
+  main { max-width: 560px; margin: 0 auto; padding: 28px 20px 48px; }
+  .status { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px;
+            font-size: 13px; font-weight: 600; margin-bottom: 14px; }
+  .status.proposed { color: var(--proposed); background: var(--proposed-bg); }
+  .status.saved { color: var(--saved); background: var(--saved-bg); }
+  .status .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+  .status.proposed .dot { animation: pulse 1.4s infinite; }
+  @keyframes pulse { 50% { opacity: .25; } }
+  h1 { font-size: 30px; margin: 0; letter-spacing: -.02em; }
+  .date { color: var(--muted); margin: 2px 0 6px; }
+  .headline { font-size: 17px; margin: 10px 0 18px; }
+  .row { display: flex; gap: 10px; margin-bottom: 18px; }
+  .chip { flex: 1; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+  .chip .label { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+  .chip .value { font-weight: 600; margin-top: 2px; }
+  .alert { margin-top: 4px; color: #c62828; font-size: 13px; font-weight: 600; }
+  .bar { height: 6px; background: var(--line); border-radius: 3px; margin-top: 6px; overflow: hidden; }
+  .bar > div { height: 100%; background: var(--school); }
+  .behind .bar > div { background: #e65100; }
+  h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 22px 0 8px; }
+  .item { display: flex; gap: 12px; background: var(--card); border: 1px solid var(--line);
+          border-left: 4px solid var(--free); border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; }
+  .item .time { width: 92px; flex-shrink: 0; color: var(--muted); font-variant-numeric: tabular-nums; font-size: 13px; padding-top: 1px; }
+  .item .title { font-weight: 600; }
+  .item .note { font-size: 13px; color: var(--proposed); margin-top: 2px; }
+  .item.now { box-shadow: 0 0 0 2px var(--school); }
+  .item.past { opacity: .5; }
+  ul { margin: 0; padding: 0; list-style: none; }
+  .box { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 4px 12px; }
+  .box li { padding: 8px 0; border-bottom: 1px solid var(--line); }
+  .box li:last-child { border-bottom: 0; }
+  .suggest li::before { content: "→ "; color: var(--proposed); font-weight: 700; }
+  .cal-link { display: inline-block; margin-top: 6px; padding: 5px 10px; border-radius: 8px; font-size: 13px;
+              font-weight: 600; color: #1a56db; background: #eaf1ff; text-decoration: none; }
+  .cal-link:hover { background: #dbe7ff; }
+  .suggest li { display: flex; flex-direction: column; align-items: flex-start; }
+  .suggest li::before { display: none; }
+  .carry li::before { content: "☐ "; color: var(--muted); }
+  .ahead li b { display: inline-block; width: 44px; }
+  .empty { color: var(--muted); text-align: center; margin-top: 80px; }
+  footer { color: var(--muted); font-size: 12px; margin-top: 26px; text-align: center; }
+</style>
+</head>
+<body>
+<main id="app"><p class="empty">Waiting for your first check-in…<br>Say “good morning” to Claude.</p></main>
+<script>
+const COLORS = { work: "--work", class: "--class", school: "--school", exercise: "--exercise",
+                 social: "--social", chore: "--chore", free: "--free" };
+
+function el(tag, cls, text) {
+  const n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (text != null) n.textContent = text;
+  return n;
+}
+
+function fmt(hhmm) {
+  if (!hhmm) return "";
+  let [h, m] = hhmm.split(":").map(Number);
+  const ap = h >= 12 ? "PM" : "AM";
+  h = h % 12 || 12;
+  return `${h}:${String(m).padStart(2, "0")} ${ap}`;
+}
+
+function chicagoNow() {
+  const parts = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Chicago", year: "numeric",
+    month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false })
+    .formatToParts(new Date()).reduce((a, p) => (a[p.type] = p.value, a), {});
+  return { date: `${parts.year}-${parts.month}-${parts.day}`, time: `${parts.hour}:${parts.minute}` };
+}
+
+function list(title, items, cls, render) {
+  if (!items || !items.length) return null;
+  const frag = document.createDocumentFragment();
+  frag.append(el("h2", null, title));
+  const ul = el("ul", `box ${cls}`);
+  items.forEach(i => ul.append(render(i)));
+  frag.append(ul);
+  return frag;
+}
+
+// Only link to Google Calendar, never anywhere else.
+function safeCalendarLink(url) {
+  try {
+    const u = new URL(url);
+    return u.protocol === "https:" && ["www.google.com", "calendar.google.com"].includes(u.hostname) ? u.href : null;
+  } catch { return null; }
+}
+
+function renderSuggestion(s) {
+  const li = el("li");
+  if (typeof s === "string") { li.append(s); return li; }
+  li.append(s.text);
+  const href = s.event_link && safeCalendarLink(s.event_link);
+  if (href) {
+    const a = el("a", "cal-link", `Edit ${s.event_title || "event"} in Google Calendar ↗`);
+    a.href = href; a.target = "_blank"; a.rel = "noopener noreferrer";
+    li.append(a);
+  }
+  return li;
+}
+
+function render({ proposed, saved }) {
+  const app = document.getElementById("app");
+  const plan = proposed || saved;
+  app.replaceChildren();
+  if (!plan) {
+    app.append(el("p", "empty", "Waiting for your first check-in… Say “good morning” to Claude."));
+    return;
+  }
+  const isProposed = !!proposed;
+  const badge = el("div", `status ${isProposed ? "proposed" : "saved"}`);
+  badge.append(el("span", "dot"), el("span", null,
+    isProposed ? "Proposed: waiting for your OK" : "Saved plan"));
+  app.append(badge);
+
+  const [y, mo, d] = plan.date.split("-").map(Number);
+  const label = new Date(y, mo - 1, d).toLocaleDateString("en-US", { month: "long", day: "numeric" });
+  app.append(el("h1", null, plan.weekday || "Today"), el("div", "date", label));
+  if (plan.headline) app.append(el("div", "headline", plan.headline));
+
+  const row = el("div", "row");
+  if (plan.weather) {
+    const c = el("div", "chip");
+    c.append(el("div", "label", "Weather"), el("div", "value", plan.weather.summary));
+    if (plan.weather.alert) c.append(el("div", "alert", "⚠ " + plan.weather.alert));
+    row.append(c);
+  }
+  if (plan.assignment) {
+    const a = plan.assignment;
+    const c = el("div", `chip ${a.status === "behind" ? "behind" : ""}`);
+    const due = a.due ? new Date(a.due).toLocaleString("en-US", { weekday: "short", hour: "numeric",
+      minute: "2-digit", timeZone: "America/Chicago" }) : "";
+    c.append(el("div", "label", `${a.name} · due ${due}`),
+             el("div", "value", `Step ${a.step} of ${a.total_steps} · ${a.status}`));
+    const bar = el("div", "bar"), fill = el("div");
+    fill.style.width = `${Math.round(((a.step - 1) / a.total_steps) * 100)}%`;
+    bar.append(fill); c.append(bar); row.append(c);
+  }
+  app.append(row);
+
+  app.append(el("h2", null, "Timeline"));
+  const now = chicagoNow();
+  (plan.timeline || []).forEach(t => {
+    const item = el("div", "item");
+    item.style.borderLeftColor = `var(${COLORS[t.kind] || "--free"})`;
+    if (plan.date === now.date) {
+      if (t.end && t.end <= now.time) item.classList.add("past");
+      else if (t.start <= now.time && (!t.end || now.time < t.end)) item.classList.add("now");
+    }
+    const body = el("div");
+    body.append(el("div", "title", t.title));
+    if (t.note) body.append(el("div", "note", t.note));
+    item.append(el("div", "time", t.end ? `${fmt(t.start)} – ${fmt(t.end)}` : fmt(t.start)), body);
+    app.append(item);
+  });
+
+  [list("Suggestions: you make these changes", plan.suggestions, "suggest", renderSuggestion),
+   list("Carried over", plan.carried_over, "carry", s => el("li", null, s)),
+   list("Look ahead", plan.look_ahead, "ahead", s => { const li = el("li"); li.append(el("b", null, s.day), s.plan); return li; })]
+    .forEach(n => n && app.append(n));
+
+  const when = plan.saved_at ? new Date(plan.saved_at).toLocaleString("en-US",
+    { weekday: "short", hour: "numeric", minute: "2-digit", timeZone: "America/Chicago" }) : "";
+  app.append(el("footer", null, `${isProposed ? "Proposed" : "Saved"} ${when} · updates automatically`));
+}
+
+let last = "";
+async function poll() {
+  try {
+    const r = await fetch("/api/state", { cache: "no-store" });
+    const text = await r.text();
+    if (text !== last) { last = text; render(JSON.parse(text)); }
+  } catch (e) { /* server restarting; try again */ }
+}
+poll();
+setInterval(poll, 2000);
+</script>
+</body>
+</html>

@@ -1,0 +1,71 @@
+{
+  "date": "2026-11-08",
+  "weekday": "Sunday",
+  "saved_at": "2026-11-07T22:12:44-06:00",
+  "headline": "Two blocks left: build the UI and hook today, record Monday night.",
+  "weather": {
+    "summary": "Sunny, 36→58°F",
+    "alert": null
+  },
+  "assignment": {
+    "name": "A6 LifeHarness",
+    "due": "2026-11-10T17:30:00-06:00",
+    "step": 3,
+    "total_steps": 5,
+    "status": "behind"
+  },
+  "timeline": [
+    {
+      "start": "10:30",
+      "end": "11:45",
+      "title": "Boxing",
+      "kind": "exercise"
+    },
+    {
+      "start": "12:00",
+      "end": "15:00",
+      "title": "A6: finish step 3 (UI), then step 4 (hook)",
+      "kind": "school"
+    },
+    {
+      "start": "15:00",
+      "end": "16:30",
+      "title": "Walk in Lincoln Park",
+      "kind": "free",
+      "note": "58°F and sunny, the nicest afternoon of the week"
+    },
+    {
+      "start": "16:30",
+      "end": "18:00",
+      "title": "A6: test the hook + one practice demo run",
+      "kind": "school"
+    },
+    {
+      "start": "19:00",
+      "end": "20:00",
+      "title": "Laundry",
+      "kind": "chore",
+      "note": "Suggested: moved from Monday"
+    }
+  ],
+  "suggestions": [
+    {
+      "text": "Move Monday's laundry (7:30 PM) to Sunday 7 PM so Monday night is free for recording.",
+      "event_title": "Laundry · Mon 7:30 PM",
+      "event_link": "https://www.google.com/calendar/event?eid=X2RoZ25hcmo0ZTlzaXFjOWg2MHNrMHIzOWNwaW1nb2JpZHBpbjZzcGVkaG5tNm9iYyBjXzk5OGRlOTJmMWQ3Y2ViZWYzOWQ1NzFhMWE1ZGM3NmFhYmZkOWQwNTlhODZiMTI4MzAwNGJkMWU5ZjRlYTQwYTRAZw"
+    }
+  ],
+  "carried_over": [
+    "Confirm your real class time"
+  ],
+  "look_ahead": [
+    {
+      "day": "Mon",
+      "plan": "7–9 PM: record step 5, post in #general, submit link"
+    },
+    {
+      "day": "Tue",
+      "plan": "Nothing left. Due 5:30 PM while you're at work."
+    }
+  ]
+}
