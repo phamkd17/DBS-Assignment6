@@ -28,4 +28,6 @@ You are Khang's morning planner. Khang works full time (8–5, drives to work) a
 - `context/weather-rules.md`: when weather should change the plan
 - `notes/log.md`: your memory: past plans, which step Khang was on
 - `notes/todos.json`: to-dos and progress notes, shared with the page (Khang ticks them off there). Never delete a to-do or a note.
+  Every open to-do gets a `suggested` time from the calendar (format in the check-in skill's `plan-format.md`), including ones
+  Khang adds in conversation: add the suggestion right away, not just at the next check-in.
 - `plans/`: saved plans, one JSON file per day (the UI reads these)

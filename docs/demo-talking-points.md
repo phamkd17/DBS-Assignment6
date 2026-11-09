@@ -103,7 +103,7 @@ Everything below is built. The only ⏳ left is confirming my real class time.
 - **Calendar card:** "Open calendar ↗" (that day) and "+ Add event ↗," opening in my UChicago Google account.
 - **Timeline:** the day's plan, color-coded by kind (work, class, school, exercise, social, chore), with the current item highlighted.
 - **Suggestions:** calendar changes for me to make, each with an "Edit … in Google Calendar ↗" button.
-- **To-dos:** tick to finish (done items fold into "Done"), click one to see and add progress notes, add new ones on the page. Claude reads and updates the same file at check-ins, never deletes a to-do or a note, and marks its own notes "Claude."
+- **To-dos:** each open one shows a **suggested time** Claude picked from my calendar ("📅 Fri Nov 13 · 5:30–7:00 PM · Friday is your night off; free between work and the Bulls game"), refreshed every check-in. **Click the time** and Google Calendar opens a prefilled new event (title, time, reason); I pick the LifeHarness calendar and save it. Claude still never writes to the calendar. Tick to finish (done items fold into "Done"), click one to see and add progress notes, add new ones on the page. Claude reads and updates the same file at check-ins, never deletes a to-do or a note, and marks its own notes "Claude."
 - **Look ahead:** the remaining days until the deadline.
 - **Photo caption (bottom right):** place and photographer; click it for the full photo.
 - **✈️ The vacation game:** "These photos are our vacation inspiration. My friend and I pick a random date in the future, and wherever the photo is on that day, that's where we go." Click the caption: "If today were our date, we'd be going to Bulgaria."
@@ -130,6 +130,8 @@ Everything below is built. The only ⏳ left is confirming my real class time.
 19. **"Match the scrollbar to the theme, keep the forecast open, add a day summary at the top."** Then **"remove the Weather chip"** (it showed the old plan's weather; the card shows live data).
 20. **"Peak high and low for the next 7 days; click to open the full weather app" → "use the same data source" → "peaks regardless of the day" → "show the dates."** The click opens an in-page forecast from the same data, so the numbers always match (the Mac Weather app uses Apple's data). Going to 7 days was another edit I made myself to the protected weather script.
 21. **"Make the commute card the same opacity as the other cards."** Small, but it's my page.
+22. **"Suggest when I should do each to-do, according to my calendar."** → Each to-do gets a suggested slot sized to the task: 5 minutes tonight for confirming my class time (it has to happen before class), Friday's free evening for booking flights. The check-in keeps them current.
+23. **"Do this for every future to-do, and let me click the suggested time to put it on my calendar."** → Claude adds a suggestion as soon as I mention a to-do (to-dos typed on the page get one at the next check-in, since the page can't read the calendar), and the time is a one-click, prefilled "new event" that *I* save.
 
 ## Behind the scenes (if asked)
 - **Windows Spotlight has no official API.** The page uses the unofficial endpoint Windows itself calls, so it could change. If it fails, the page keeps yesterday's photo or shows a plain background.

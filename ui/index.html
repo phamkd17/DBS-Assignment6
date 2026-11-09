@@ -181,6 +181,10 @@
   .todo-text:hover { color: var(--school); }
   .todo.done .todo-text { text-decoration: line-through; color: var(--muted); }
   .todo-count { font-size: 12px; color: var(--muted); }
+  .todo-sugg { font-size: 12px; color: var(--muted); margin: 2px 0 0 27px; }
+  .todo-sugg b, .todo-sugg-link { color: #1a56db; font-weight: 600; }
+  .todo-sugg-link { text-decoration: none; border-radius: 6px; padding: 0 3px; margin-left: -3px; }
+  .todo-sugg-link:hover { background: #eaf1ff; text-decoration: underline; }
   .todo-latest { font-size: 13px; color: var(--muted); margin: 2px 0 0 27px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .todo-notes { margin: 8px 0 2px 27px; padding-left: 10px; border-left: 2px solid var(--line); }
   .todo-note { font-size: 13px; margin-bottom: 6px; }
@@ -324,6 +328,19 @@ function inputForm(placeholder, button, onSubmit) {
   return f;
 }
 
+// Prefilled "new event" link for a suggested time. Khang reviews and saves it
+// (Claude never writes to the calendar). Times are Chicago local: YYYY-MM-DDTHH:MM.
+function addEventLink(title, sg) {
+  const g = iso => iso.replace(/[-:]/g, "").slice(0, 13) + "00";
+  const u = new URL("https://calendar.google.com/calendar/render");
+  u.searchParams.set("action", "TEMPLATE");
+  u.searchParams.set("text", title);
+  u.searchParams.set("dates", `${g(sg.start)}/${g(sg.end)}`);
+  u.searchParams.set("ctz", "America/Chicago");
+  if (sg.why) u.searchParams.set("details", `Suggested by LifeHarness: ${sg.why}`);
+  return safeCalendarLink(u.href);
+}
+
 function renderTodo(t) {
   const li = el("li", `todo ${t.done ? "done" : ""}`);
   const row = el("div", "todo-row");
@@ -340,6 +357,16 @@ function renderTodo(t) {
   row.append(box, text);
   if (notes.length) row.append(el("span", "todo-count", `📝 ${notes.length}`));
   li.append(row);
+  if (t.suggested && !t.done) {
+    const sg = el("div", "todo-sugg");
+    const href = t.suggested.start && t.suggested.end && addEventLink(t.text, t.suggested);
+    const when = href ? el("a", "todo-sugg-link") : el("b");
+    when.textContent = `📅 ${t.suggested.when}${href ? " ＋" : ""}`;
+    if (href) { when.href = href; when.target = "_blank"; when.rel = "noopener noreferrer";
+                when.title = "Add to Google Calendar (pick the LifeHarness calendar, then Save)"; }
+    sg.append(when, t.suggested.why ? ` · ${t.suggested.why}` : "");
+    li.append(sg);
+  }
 
   if (expanded.has(t.id)) {
     const box2 = el("div", "todo-notes");

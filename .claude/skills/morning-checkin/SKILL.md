@@ -1,6 +1,6 @@
 ---
 name: morning-checkin
-description: Khang's daily check-in and day planner. Use whenever Khang greets you in the morning ("good morning", "morning", "gm"), asks to plan or replan the day ("plan my day", "what should I do today", "replan", "I added an event"), or asks what's on today or how much time is left for the assignment. Reads the LifeHarness calendar, weather, and notes; asks at most two questions; proposes a plan; saves it only after Khang agrees.
+description: Khang's daily check-in and day planner. Use whenever Khang greets you in the morning ("good morning", "morning", "gm"), asks to plan or replan the day ("plan my day", "what should I do today", "replan", "I added an event"), asks what's on today or how much time is left for the assignment, or asks to "suggest times for my to-dos". Reads the LifeHarness calendar, weather, and notes; asks at most two questions; proposes a plan; saves it only after Khang agrees.
 allowed-tools: Read, Bash(date *), Bash(./scripts/fetch-weather.sh), Bash(curl -s -o /dev/null -w * http://localhost:4321/), Bash(python3 ui/server.py), Bash(open http://localhost:4321), mcp__claude_ai_Google_Calendar__list_events
 ---
 
@@ -45,6 +45,10 @@ Khang has ~2–3 minutes (coffee, shower, then driving at 7:20). Be brief. No lo
   - New to-do Khang mentions → add it.
   - Khang says one is done → set `done: true` and `done_at`.
   - Khang reports progress on one → append a note with `"by": "Claude"`.
+  - For every open to-do, set or refresh `suggested` (format in `plan-format.md`, including `start`/`end`): a specific free time from the calendar
+    and weekly rhythm, sized to the task. Never during work, class, or a school block unless it's a few minutes; prefer
+    Friday evenings and gaps around weekend events for longer ones. If it must happen before a deadline or event, say so.
+    It's a suggestion only: never put it on the calendar.
   - Never delete a to-do or any note, and never edit Khang's notes.
 - Reply in one line: "Plan saved. Your page is updated."
 

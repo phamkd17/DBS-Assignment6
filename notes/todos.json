@@ -12,7 +12,13 @@
           "by": "Claude",
           "text": "Tue 5:30–8:30 PM is a guess from the 5:30 PM deadline. Fix it in the LifeHarness calendar and context/weekly-rhythm.md."
         }
-      ]
+      ],
+      "suggested": {
+        "when": "Tonight, Mon Nov 9 · 9:30 PM",
+        "why": "5 minutes, after you submit A6, so you know when class starts tomorrow.",
+        "start": "2026-11-09T21:30",
+        "end": "2026-11-09T21:45"
+      }
     },
     {
       "id": "t20261109a",
@@ -20,7 +26,13 @@
       "done": false,
       "created": "2026-11-09T14:14:44-06:00",
       "done_at": null,
-      "notes": []
+      "notes": [],
+      "suggested": {
+        "when": "Fri Nov 13 · 5:30–7:00 PM",
+        "why": "Friday is your night off; free between work and the Bulls game.",
+        "start": "2026-11-13T17:30",
+        "end": "2026-11-13T19:00"
+      }
     }
   ]
 }

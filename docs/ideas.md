@@ -27,6 +27,8 @@ Add anything here. Move items to "Done" when they're built.
 - Live drive time on "good morning" (TomTom key or scraping Google Maps). Kept the "Check live traffic" button.
 
 ## Done
+- [x] Click a to-do's suggested time → Google Calendar opens a prefilled new event (title, time, reason); Khang picks the LifeHarness calendar and saves. Every to-do gets a suggestion, also when added in conversation.
+- [x] Suggested times on to-dos: Claude picks a free slot from the calendar and weekly rhythm, refreshed each check-in, shown on the page (suggestion only, never added to the calendar).
 - [x] Week peaks (High ▲ / Low ▼ for the next 7 days) at the top of the weather card; click for a full 7-day forecast from the same data.
 - [x] Weather card (always open): day summary (icon, high/low, quick summary, sunrise/sunset) and one chart with temperature + humidity lines (shared axis), chance of rain, storms, with hover values (reads the same weather file Claude uses).
 - [x] Calendar links open in the UChicago Google account (`GOOGLE_ACCOUNT` in the git-ignored `.env`, added as `authuser`).

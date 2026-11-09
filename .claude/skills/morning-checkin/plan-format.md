@@ -76,3 +76,7 @@ Shared with the page: Khang ticks items off and adds notes there. Keep this exac
 ```
 - `id`: unique. For new ones use `"t" + YYYYMMDD + a letter` (e.g. `t20261109b`), checking it isn't taken.
 - `by`: `"Khang"` (added on the page) or `"Claude"` (added in a check-in).
+- `suggested` (Claude sets it on every open to-do):
+  `{ "when": "Fri Nov 13 · 5:30–7:00 PM", "why": "one short reason", "start": "2026-11-13T17:30", "end": "2026-11-13T19:00" }`.
+  `start`/`end` are Chicago local time, no offset; the page turns them into an "add to calendar" link; Khang
+  reviews and saves it. Refresh at each check-in; drop nothing else.
