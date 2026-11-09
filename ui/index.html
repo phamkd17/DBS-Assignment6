@@ -158,11 +158,19 @@ function list(title, items, cls, render) {
   return frag;
 }
 
-// Only link to Google Calendar, never anywhere else.
+// Google account for calendar links, from the git-ignored .env (via /api/config).
+let GOOGLE_ACCOUNT = "";
+fetch("/api/config").then(r => r.json())
+  .then(c => { GOOGLE_ACCOUNT = c.google_account || ""; last = ""; poll(); })
+  .catch(() => {});
+
+// Only link to Google Calendar, never anywhere else; open it in the right account.
 function safeCalendarLink(url) {
   try {
     const u = new URL(url);
-    return u.protocol === "https:" && ["www.google.com", "calendar.google.com"].includes(u.hostname) ? u.href : null;
+    if (u.protocol !== "https:" || !["www.google.com", "calendar.google.com"].includes(u.hostname)) return null;
+    if (GOOGLE_ACCOUNT) u.searchParams.set("authuser", GOOGLE_ACCOUNT);
+    return u.href;
   } catch { return null; }
 }
 
@@ -301,7 +309,7 @@ function renderCalendar(plan) {
   [["Open calendar ↗", dayUrl], ["+ Add event ↗", "https://calendar.google.com/calendar/r/eventedit"]]
     .forEach(([label, href]) => {
       const a = el("a", "cal-link", label);
-      a.href = href; a.target = "_blank"; a.rel = "noopener noreferrer";
+      a.href = safeCalendarLink(href); a.target = "_blank"; a.rel = "noopener noreferrer";
       links.append(a);
     });
   card.append(text, links);

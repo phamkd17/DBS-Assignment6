@@ -82,6 +82,20 @@ def spotlight_photos():
         return list(_pool)   # if the fetch failed, keep yesterday's photos (retry next request)
 
 
+def local_settings():
+    """KEY=VALUE pairs from the git-ignored .env file (e.g. GOOGLE_ACCOUNT)."""
+    settings = {}
+    try:
+        for line in (ROOT / ".env").read_text().splitlines():
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                k, v = line.split("=", 1)
+                settings[k.strip()] = v.strip()
+    except OSError:
+        pass
+    return settings
+
+
 def load(path):
     try:
         return json.loads(path.read_text())
@@ -154,6 +168,8 @@ class Handler(SimpleHTTPRequestHandler):
             return self.send_json(state())
         if self.path.startswith("/api/photos"):
             return self.send_json(spotlight_photos())
+        if self.path.startswith("/api/config"):
+            return self.send_json({"google_account": local_settings().get("GOOGLE_ACCOUNT", "")})
         super().do_GET()
 
     def do_POST(self):

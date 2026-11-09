@@ -27,6 +27,7 @@ Add anything here. Move items to "Done" when they're built.
 - Live drive time on "good morning" (TomTom key or scraping Google Maps). Kept the "Check live traffic" button.
 
 ## Done
+- [x] Calendar links open in the UChicago Google account (`GOOGLE_ACCOUNT` in the git-ignored `.env`, added as `authuser`).
 - [x] Opening animation: today's photo full-screen for 0.25 s, then fades into the muted background (click to skip).
 - [x] Calendar card: "Open calendar ↗" (the plan's day) and "+ Add event ↗". Khang edits in Google Calendar, then says "replan".
 - [x] Clickable to-dos with progress notes: `notes/todos.json`, shared by the page and Claude. Tick to finish, click to open notes, add to-dos and notes on the page.
